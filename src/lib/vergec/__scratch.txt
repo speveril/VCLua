@@ -1,0 +1,184 @@
+-- Define our grammar for the parser
+VergeC.grammar = {
+    NONE = {},
+    
+    LETTER = { literal = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'} },
+    DIGIT = { literal = {'0','1','2','3','4','5','6','7','8','9'} },
+    UNDERSCORE = { literal = {'_'} },
+    TYPE = { literal = {'void','int','struct'} },
+    BOOLEAN_OPERATOR = { literal = {'+','-','*','/','^','&&','||'}
+    
+    NUMBER = { many = {'DIGIT'} },
+    IDENTIFIER = { many = {'DIGIT','LETTER','UNDERSCORE'} }
+}
+
+-- Parse a codestring, return an AST describing it
+function VergeC.parsestring(code)
+    print("VERGEC:  Parsing...")
+    local i = 1
+    
+    t,i = VergeC.getNext('IDENTIFIER', code, i)
+    print(" -- TOKEN: " .. tostring(t))
+end
+
+function VergeC.getNext(type, code, i)
+    type = VergeC.grammar[type]
+    assert(type, 'Bad grammar type in VergeC.getNext()')
+    
+    local t = nil
+    
+    while string.byte(code, i) < 33 do i = i + 1 end
+    
+    if type.literal then
+        t = VergeC.matchLiterals(code, i, type.literal)
+        if t then i = i + string.len(t) end
+    elseif type.oneof then
+        for x,ty in pairs(type.many) do
+            tk,i = VergeC.getNext(ty, code, i)
+            if tk then
+                t = tk
+            end
+            break
+        end
+    elseif type.many then
+        local done = false
+        while not done do
+            done = true
+            for x,ty in pairs(type.many) do
+                tk,i = VergeC.getNext(ty, code, i)
+                if tk then
+                    if not t then t = '' end
+                    t = t..tk
+                    done = false
+                end
+                break
+            end
+        end
+    elseif type.sequence then
+        local j = i
+        for x,def in pairs(type.sequence) do
+            tk,j = VergeC.getNext()
+        end
+    end
+    
+    return t,i
+end
+
+function VergeC.matchLiterals(str, i, literals)
+    for x,l in ipairs(literals) do
+        if l == string.sub(code, i, i + string.len(l) - 1) then
+            return l
+        end
+    end
+    return nil
+end
+
+    --[[
+    local type
+    local value
+    while true do
+        type,value,index = VergeC.getNextToken(code, index)
+        
+        if type then
+            print(type .. ": " .. value)
+        else
+            if index < string.len(code) then
+                print("ERROR: Couldn't tokenize VergeC file. (index is " .. index .. ")")
+            end
+            break
+        end
+    end
+    --]]
+
+
+
+
+
+------------
+
+
+function VergeC.matchStatement(code, index)
+    local ty,val,i = VergeC.lookNextToken(code,index)
+    local node = { nodetype='statement' }
+    local ii
+    
+    if ty == 'KEY_IF' then
+        -- build if node
+    elseif ty == 'KEY_WHILE' then
+        -- build while node
+    else
+        node.lhs = VergeC.matchExpr(code, index)
+        ty,val,ii = VergeC.lookNextToken(code,i)
+        if ty == 'OP_ASSIGN' then
+            i = ii
+            node.rhs = VergeC.matchExpr(code,i)
+            node.exprtype = 'assign'
+        else
+            node.exprtype = 'simple'
+        end
+        -- match expression node
+        -- (which could be an assignment statement)
+    end
+    
+    -- finally, check if we've ended the statement with a semi-colon; if we have,
+    -- then consume it
+    ty,val,ii = VergeC.lookNextToken(code,i)
+    
+    if ty == 'SEMICOLON' then
+        return node, ii
+    else
+        return node, i
+    end
+end
+
+function VergeC.matchExpr(code, index)
+    local ty, c, i = VergeC.lookNextToken(code, index)
+    
+    if t[1] == 'PAREN_OPEN' then
+        local n
+        index = i
+        n, i = VergeC.matchExpr(code, index)
+        
+    end
+end
+
+function VergeC.matchDecl(code, index)
+    local i = index
+    
+    local type,i = VergeC.matchType(code,i)
+    local ident,i = VergeC.matchIdent(code, i)
+    -- do extra handling for 
+    
+    if type and ident then
+        return { nodetype='DECL', type=type, ident=ident }, i
+    else
+        return nil, index
+    end
+end
+
+function VergeC.matchIdent(code, index)
+    local ty,val,i = VergeC.lookNextToken(code,index)
+    print(" matching IDENT: " .. ty .. ": " .. val)
+    
+    if ty == 'IDENT' then
+        return { nodetype='IDENT', name=val }, i
+    else
+        return nil, index
+    end
+end
+
+function VergeC.matchType(code, index)
+    local ty,val,i = VergeC.lookNextToken(code,index)
+    print(" matching TYPE: " .. ty .. ": " .. val)
+    
+    if ty == 'TY_INT'  then
+        return { nodetype='TYPE', type='int' }, i
+    elseif ty == 'TY_VOID' then
+        return { nodetype='TYPE', type='void' }, i
+    elseif ty == 'TY_STRING' then
+        return { nodetype='TYPE', type='string' }, i
+    else
+        return nil, index
+    end
+end
+

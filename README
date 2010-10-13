@@ -1,1 +1,8 @@
-VC->Lua project
+
+  VC->Lua project
+
+  Compiler for VergeC to Lua, written in Lua. Intended for use with the Verge3 game engine:
+    http://www.verge-rpg.com/
+    http://github.com/Bananattack/verge3
+    
+    

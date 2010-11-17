@@ -4,6 +4,7 @@ VergeC = {}
 require('vergec.preprocessor')
 require('vergec.tokenizer')
 require('vergec.parser')
+require('vergec.compiler')
 
 function VergeC.newModule()
     local m = {}
@@ -17,9 +18,12 @@ function VergeC.newModule()
     m.addLine = VergeC.addLine
     m.preprocess = VergeC.preprocess
     m.parse = VergeC.parse
-    m.compile = VergeC.compile
     m.peek = VergeC.peek
     m.consume = VergeC.consume
+    
+    m.compile = VergeC.compile
+    m.emit = VergeC.emit
+    m.compileNode = VergeC.compileNode
     
     return m
 end
@@ -62,12 +66,9 @@ function VergeC.loadfile(filename)
         local col = module.furthestindex - lastnewln + 1
         
         ln = string.gsub(ln, "\t", "    ")
-                
-        print("** VERGEC PARSE FAILURE near line " .. lineno .. ", column " .. col .. ":")
-        print(ln)
-        print(string.rep(" ", col-1) .. "^")
         
-        return
+        msg = "** VERGEC PARSE FAILURE near line " .. lineno .. ", column " .. col .. ":\n" .. ln .. string.rep(" ", col-1) .. "^"
+        v3.exit(msg)
     end
 
     VergeC.printAST(module.ast)
@@ -102,8 +103,4 @@ function VergeC.printAST(ast, indent)
     for i,v in ipairs(ast) do
         VergeC.printAST(v,indent+2)
     end
-end
-
-function VergeC.compile(this)
-    
 end

@@ -39,17 +39,15 @@ function VergeC.compileNode(this, node)
     if name[1] == 'decl' then
         local scope = #this.scope
         
-        print('var [' .. scope .. ']: ' .. node[1].type .. ' ' .. node[2].value)
+        -- TODO need to pay attention to type somehow
         if this.scope[scope][node[2]] then
             v3.exit("VERGEC: Compile error\n   Global variable '" .. node.name .. "'")
         else
             this.scope[1][node[2]] = { type = node[1].token_type, ident = node[2].value }
             this:emit(node[2].value .. " = ")
             if node[3] then
-                print("globalvar has init")
                 this:compileNode(node[3])
             else
-                print("globalvar does not have init")
                 if node[1].token_type == 'TY_INT' or node[1].token_type == 'TY_FLOAT' then
                     this:emit('0')
                 elseif node[1].token_type == 'TY_FLOAT' then
@@ -63,12 +61,39 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'func' then
         if name[2] == 'globalfunc' then
             table.insert(this.scope, {})
-            -- need to pay attention to type somehow
+            local localscope = this.scope[#this.scope]
+            
+            -- build function head and signature
+            local first = true
             this:emit("function " .. node[2].value .. "(")
-            this:compileNode(node[3])
+            for i,v in ipairs(node[3]) do
+                if first then first = false else this:emit(",") end
+                -- TODO need to pay attention to type somehow
+                this:emit(v[2].value)
+                table.insert(localscope, { type = v[1].token_type, ident = v[2].value, init = v[3] })
+            end
             this:emit(")\n")
+            
+            -- do inits
+            
+            for i,v in ipairs(localscope) do
+                this:emit('if ' .. v.ident .. ' == nil then ' .. v.ident .. ' = ')
+                if v.init then
+                    this:compileNode(v.init)
+                else
+                    if node[1].token_type == 'TY_INT' or node[1].token_type == 'TY_FLOAT' then
+                        this:emit('0')
+                    elseif node[1].token_type == 'TY_FLOAT' then
+                        this:emit('""')
+                    end
+                end
+                this:emit(" end\n")
+            end
+            
             this:compileNode(node[4])
             this:emit("end")
+            
+            table.remove(this.scope)
         end
     
     

@@ -10,14 +10,16 @@ function string.split(str, div)
     return arr
 end
 
+VergeC.libfuncs = {
+    log = function(this, str) this:emit('v3.log(') this:compileNode(str) this:emit(')') end,
+}
+
 function VergeC.compile(this)
     print("COMPILE STEP")
     
     this.scope = { {} } -- scope[1] is global scope, which we always have
     
     this:compileNode(this.ast)
-    
-    print(this.compiledcode)
 end
 
 function VergeC.emit(this, str)
@@ -25,10 +27,9 @@ function VergeC.emit(this, str)
 end
 
 function VergeC.compileNode(this, node)
-    dbg = 'Compiling node'
-    if node.name then dbg = dbg .. " '"..node.name.."'" end
-    if node.type then dbg = dbg .. " ("..node.type..")" end
-    print(dbg)
+    if not node then return end
+    
+    --VergeC.printAST(node, 1, true)
     
     local name = {}
     if node.name then
@@ -43,6 +44,7 @@ function VergeC.compileNode(this, node)
         if this.scope[scope][node[2]] then
             v3.exit("VERGEC: Compile error\n   Global variable '" .. node.name .. "'")
         else
+            if name[2] ~= 'globalvar' then this:emit("local ") end
             this.scope[1][node[2]] = { type = node[1].token_type, ident = node[2].value }
             this:emit(node[2].value .. " = ")
             if node[3] then
@@ -65,7 +67,7 @@ function VergeC.compileNode(this, node)
             
             -- build function head and signature
             local first = true
-            this:emit("function " .. node[2].value .. "(")
+            this:emit("function VergeC.bin." .. node[2].value .. "(")
             for i,v in ipairs(node[3]) do
                 if first then first = false else this:emit(",") end
                 -- TODO need to pay attention to type somehow
@@ -90,17 +92,62 @@ function VergeC.compileNode(this, node)
                 this:emit(" end\n")
             end
             
-            this:compileNode(node[4])
-            this:emit("end")
+            if node[4] then this:compileNode(node[4]) end
+            this:emit("end\n\n")
             
             table.remove(this.scope)
         end
+        
+    elseif name[1] == 'statement' then
+        this:compileNode(node[1])
+        this:emit("\n")
     
+    elseif name[1] == 'FuncCall' then
+        local funcname = node[1].value
+        
+        if VergeC.libfuncs[funcname] then
+            VergeC.libfuncs[funcname](this, unpack(node[2]))
+        else
+            local first = true
+            this:emit('VergeC.bin.' .. funcname .. '(')
+            for i,v in ipairs(node[2]) do
+                if first then first = false else this:emit(",") end
+                this:compileNode(v)
+            end
+            this:emit(')')
+        end
     
+    elseif name[1] == 'return' then
+        this:emit('return ')
+        this:compileNode(node[1])
+    
+    elseif name[1] == 'binop' then
+        local opstep = false
+        local assign = false
+        for i,v in ipairs(node) do
+            if not opstep and node[i+1] and node[i+1].token_type == 'OP_ASSIGN' then assign = true end
+            
+            if not assign and not opstep then this:emit("(") end
+            this:compileNode(v)
+            if not assign and not opstep then this:emit(") ") else this:emit(" ") end
+            assign = false
+            opstep = not opstep
+        end
+        
     
     -- then deal with generic types
+    elseif node.type == 'EXPR' then
+        this:compileNode(node[1])
     elseif node.type == 'TOKEN' then
-        if node.token_type == 'NUMBER' or node.token_type == 'IDENT' then
+        if node.token_type == 'NUMBER'
+            or node.token_type == 'OP_ADD' or node.token_type == 'OP_SUB' or node.token_type == 'OP_MLT' or node.token_type == 'OP_DIV'
+            or node.token_type == 'OP_ASSIGN' or node.token_type == 'OP_EQ'
+        then
+            this:emit(node.value)
+        elseif node.token_type == 'STRING' then
+            this:emit('"' .. node.value .. '"')
+        elseif node.token_type == 'IDENT' then
+            -- TODO check through scope to see if the identifier's been defined yet
             this:emit(node.value)
         end
     elseif node.type == 'SEQ' then

@@ -43,32 +43,33 @@ VergeC.parsing_expressions = {
     GlobalDecl = choice(collapse(named('globalfunc',parsex('FuncDecl'))), seq(collapse(named('globalvar',parsex('Decl'))),ignore(token('SEMICOLON')))),
     
     FuncDecl = named('func',seq(any_type, named('name',token('IDENT')), named('args',collapse(parsex('ArgDefn'))), named('body',collapse(parsex('Block'))))),
-    ArgDefn = collapse(seq(ignore(token('PAREN_OPEN')), optional(seq(collapse(parsex('Decl')), collapse(zero_or_more(collapse(seq(ignore(token('COMMA')),collapse(parsex('Decl')))))))), ignore(token('PAREN_CLOSE')))),
+    ArgDefn = collapse(seq(ignore(token('PAREN_OPEN')), choice(seq(collapse(parsex('Decl')), collapse(zero_or_more(collapse(seq(ignore(token('COMMA')),collapse(parsex('Decl'))))))),empty()), ignore(token('PAREN_CLOSE')))),
     
     Block = seq(ignore(token('BRACE_OPEN')), named('block',collapse(parsex('StatementList'))), ignore(token('BRACE_CLOSE'))),
     StatementList = collapse(zero_or_more(collapse(parsex('Statement')))),
    
-    Statement = named('statement',collapse(choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), collapse(seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))))),
+    Statement = named('statement',choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
     
     IfStatement = seq(token('KEY_IF'), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement')))),
     WhileStatement = seq(token('KEY_WHILE'), ignore(token('PAREN_OPEN')), parsex('Expr'), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
     ForStatement = seq(token('KEY_FOR'), ignore(token('PAREN_OPEN')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
     ReturnStatement = collapse(seq(ignore(token('KEY_RETURN')), named('return',parsex('Expr')))),
 
-    FuncCall = seq(token('IDENT'), parsex('ArgList')),
-    ArgList = seq(ignore(token('PAREN_OPEN')), optional(seq(parsex('Expr'), collapse(zero_or_more(seq(ignore(token('COMMA')),parsex('Expr')))))), ignore(token('PAREN_CLOSE'))),
+    FuncCall = seq(token('IDENT'), collapse(parsex('ArgList'))),
+    ArgList = seq(ignore(token('PAREN_OPEN')), optional(collapse(seq(parsex('Expr'), collapse(zero_or_more(collapse(seq(ignore(token('COMMA')),parsex('Expr')))))))), ignore(token('PAREN_CLOSE'))),
 
     Decl = named('decl',seq(named('type',any_type), named('name',token('IDENT')), named('initial',optional(seq(ignore(token('OP_ASSIGN')), collapse(parsex('Expr'))))))),
 
     -- expression order of operations chain
     --  ordered from binds most-tightly to least-tightly
     Value = named('value',choice(parsex('FuncCall'), token('IDENT'), token('NUMBER'), token('STRING'), seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE')))),
-    PostfixOp = choice(named('postfixop',seq(parsex('Value'), choice(token('OP_INCREMENT'), token('OP_DECREMENT')))), collapse(parsex('Value'))),
-    PrefixOp = choice(named('prefixop',seq(choice(token('OP_NOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp'))), collapse(parsex('PostfixOp'))),
-    Product = choice(seq(parsex('PrefixOp'), one_or_more(seq(named('op',choice(token('OP_MLT'), token('OP_DIV'))), parsex('PrefixOp')))), collapse(parsex('PrefixOp'))),
-    Sum = choice(seq(parsex('Product'), one_or_more(seq(named('op',choice(token('OP_ADD'), token('OP_SUB'))), parsex('Product')))), collapse(parsex('Product'))),
-    Comparison = choice(seq(parsex('Sum'), one_or_more(seq(choice(token('OP_EQ'), token('OP_NE'), token('OP_LTE'), token('OP_GTE'), token('OP_LT'), token('OP_GT')), parsex('Sum')))), collapse(parsex('Sum'))),
-    Expr = choice(seq(parsex('Comparison'), one_or_more(seq(token('OP_ASSIGN'), parsex('Comparison')))), collapse(parsex('Comparison'))),
+    PostfixOp = choice(named('postop', collapse(seq(parsex('Value'), choice(token('OP_INCREMENT'), token('OP_DECREMENT'))))), collapse(parsex('Value'))),
+    PrefixOp = choice(named('preop', collapse(seq(choice(token('OP_NOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp')))), collapse(parsex('PostfixOp'))),
+    Product = choice(collapse(named('binop', seq(parsex('PrefixOp'), collapse(one_or_more(collapse(seq(choice(token('OP_MLT'), token('OP_DIV')), parsex('PrefixOp')))))))), collapse(parsex('PrefixOp'))),
+    Sum = choice(collapse(named('binop', seq(parsex('Product'), collapse(one_or_more(collapse(seq(choice(token('OP_ADD'), token('OP_SUB')), parsex('Product')))))))), collapse(parsex('Product'))),
+    Comparison = choice(collapse(named('binop', seq(parsex('Sum'), collapse(one_or_more(collapse(seq(choice(token('OP_EQ'), token('OP_NE'), token('OP_LTE'), token('OP_GTE'), token('OP_LT'), token('OP_GT')), parsex('Sum')))))))), collapse(parsex('Sum'))),
+    Assignment = choice(collapse(named('binop',seq(parsex('Comparison'), collapse(one_or_more(collapse(seq(token('OP_ASSIGN'), parsex('Comparison')))))))), collapse(parsex('Comparison'))),
+    Expr = parsex('Assignment'),
 }
 
 VergeC.default_parsing_expression = 'GlobalList'

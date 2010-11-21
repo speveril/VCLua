@@ -1,6 +1,8 @@
 -- Our VergeC state
 VergeC = {}
 
+VergeC.bin = {}
+
 require('vergec.preprocessor')
 require('vergec.tokenizer')
 require('vergec.parser')
@@ -26,6 +28,10 @@ function VergeC.newModule()
     m.compileNode = VergeC.compileNode
     
     return m
+end
+
+function VergeC.call(func, args)
+    return VergeC.bin[func](unpack(args))
 end
 
 function VergeC.addLine(this, ln)
@@ -62,25 +68,36 @@ function VergeC.loadfile(filename)
             end
         end
         
-        local ln = string.sub(c, lastnewln + 1, string.find(c, "\n", lastnewln + 1, true) - 1)
+        local lnend = string.find(c, "\n", lastnewln + 1, true)
+        if lnend then lnend = lnend - 1 end
+        
+        local ln = string.sub(c, lastnewln + 1, lnend)
         local col = module.furthestindex - lastnewln + 1
         
         ln = string.gsub(ln, "\t", "    ")
         
-        msg = "** VERGEC PARSE FAILURE near line " .. lineno .. ", column " .. col .. ":\n" .. ln .. string.rep(" ", col-1) .. "^"
+        msg = "** VERGEC PARSE FAILURE near line " .. lineno .. ", column " .. col .. ":\n" .. ln .. "\n" .. string.rep(" ", col-1) .. "^"
         v3.exit(msg)
     end
 
     VergeC.printAST(module.ast)
     
     module:compile()
+    module:emit("\n-- done")
     
+    print("")
+    print("LUA SOURCE:")
+    print(module.compiledcode)
+    
+    assert(loadstring(module.compiledcode))()
+    
+    return module
     -- done
 end
 
 
 -- Print out an AST
-function VergeC.printAST(ast, indent)
+function VergeC.printAST(ast, indent, norecurse)
     if not ast then return end
     if type(ast) ~= 'table' then return end
     
@@ -100,7 +117,10 @@ function VergeC.printAST(ast, indent)
     end
     print(sp..nodedesc)
 
-    for i,v in ipairs(ast) do
-        VergeC.printAST(v,indent+2)
+    if not norecurse then
+        for i,v in ipairs(ast) do
+            VergeC.printAST(v,indent+2)
+        end
     end
 end
+ 

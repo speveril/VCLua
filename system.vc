@@ -3,6 +3,12 @@
 //int y;
 
 void autoexec() {
+    int y = 0
+    
+    if (y) {
+        log("True!")
+    }
+    
     int x = -2;
     x = add(x);
     log(x);

@@ -53,7 +53,7 @@ function VergeC.compileNode(this, node)
         if this.scope[scope][node[2]] then
             VergeC.error("COMPILE ERROR\n  Redeclaration of global variable '" .. node.name .. "'", node.index)
         else
-            if name[2] ~= 'globalvar' then this:emit("local ") end
+            if name[2] ~= 'globalvar' then this:emit("local ") else this:emit("VergeC.bin.") end
             this.scope[1][node[2].value] = { type = node[1].token_type, ident = node[2].value }
             this:emit(node[2].value .. " = ")
             if node[3] then
@@ -196,7 +196,10 @@ function VergeC.compileNode(this, node)
             this:emit('"' .. node.value .. '"')
         elseif node.token_type == 'IDENT' then
             -- TODO check through scope to see if the identifier's been defined yet
-            if VergeC.findVarInScope(this, node.value) then
+            local found, scopelevel
+            found, scopelevel = VergeC.findVarInScope(this, node.value)
+            if found then
+                if level == 1 then this:emit("VergeC.bin.") end
                 this:emit(node.value)
             else
                 VergeC.error("COMPILE ERROR\n  Unknown variable '" .. node.value .. "'.", node.index)

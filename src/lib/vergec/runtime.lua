@@ -14,7 +14,7 @@ VergeC.runtime.libfunc = {
 }
 
 VergeC.runtime.truth = function(a)
-    if a == 0 or a == false or a == nil then
+    if a == 0 or a == "" or a == false or a == nil then
         return false
     else
         return true

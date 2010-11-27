@@ -38,6 +38,32 @@ function VergeC.addLine(this, ln)
     this.code = this.code .. ln .. "\n"
 end
 
+function VergeC.error(msg, index)
+    if not index then index = module.furthestindex end
+    local c = module.code
+    local lineno = 1
+    local lastnewln = 0
+    local i
+    
+    for i = 1,index do
+        if string.char(string.byte(c, i)) == "\n" then
+            lastnewln = i
+            lineno = lineno + 1
+        end
+    end
+    
+    local lnend = string.find(c, "\n", lastnewln + 1, true)
+    if lnend then lnend = lnend - 1 end
+    
+    local ln = string.sub(c, lastnewln + 1, lnend)
+    local col = index - lastnewln + 1
+    
+    ln = string.gsub(ln, "\t", "    ")
+    
+    msg = "** VERGEC " .. msg .."\nNear line " .. lineno .. ", column " .. col .. ":\n" .. ln .. "\n" .. string.rep(" ", col-1) .. "^"
+    v3.exit(msg)
+end
+
 -- Load a file and bring it into our VergeC state
 function VergeC.loadfile(filename)
     print("VERGEC: Loading file '"..filename.."'")
@@ -51,33 +77,13 @@ function VergeC.loadfile(filename)
     --print(module.code)
     
     local succ
+    module:consume(1) -- do this to consume any whitespace or comments at the beginning of the file
     module.ast,succ = module:parse()
     
     if succ and module.furthestindex >  string.len(module.code) then
         print("VERGEC: Parsing successful!")
     else
-        local c = module.code
-        local lineno = 1
-        local lastnewln = 0
-        local i
-        
-        for i = 1,module.furthestindex do
-            if string.char(string.byte(c, i)) == "\n" then
-                lastnewln = i
-                lineno = lineno + 1
-            end
-        end
-        
-        local lnend = string.find(c, "\n", lastnewln + 1, true)
-        if lnend then lnend = lnend - 1 end
-        
-        local ln = string.sub(c, lastnewln + 1, lnend)
-        local col = module.furthestindex - lastnewln + 1
-        
-        ln = string.gsub(ln, "\t", "    ")
-        
-        msg = "** VERGEC PARSE FAILURE near line " .. lineno .. ", column " .. col .. ":\n" .. ln .. "\n" .. string.rep(" ", col-1) .. "^"
-        v3.exit(msg)
+        VergeC.error("PARSING ERROR")
     end
 
     VergeC.printAST(module.ast)
@@ -87,6 +93,7 @@ function VergeC.loadfile(filename)
     
     print("")
     print("LUA SOURCE:")
+    
     print(module.compiledcode)
     
     assert(loadstring(module.compiledcode))()
@@ -94,7 +101,6 @@ function VergeC.loadfile(filename)
     return module
     -- done
 end
-
 
 -- Print out an AST
 function VergeC.printAST(ast, indent, norecurse)

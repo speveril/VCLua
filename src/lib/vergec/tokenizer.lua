@@ -11,7 +11,7 @@ tokens = {
     {'TY_VOID','void'},{'TY_INT','int'},{'TY_STRING','string'},{'TY_FLOAT','float'},
     {'BRACE_OPEN','{'},{'BRACE_CLOSE','}'},{'BRACKET_OPEN','%['},{'BRACKET_CLOSE','%]'},{'PAREN_OPEN','%('},{'PAREN_CLOSE','%)'},
     {'COMMA',','}, {'DOT','%.'},
-    {'NUMBER','%d+'},{'CHAR',"'"},{'STRING','"'}, -- string and character has special handling; see VergeC.lookNextToken
+    {'NUMBER','%d+'},{'CHAR',"'"},{'STRING','"'}, -- string and character have special handling; see VergeC.peek
     {'IDENT', '%w+'},{'SEMICOLON',';'}
     
     -- NUMBER -> %d+(%.%d+)?
@@ -19,12 +19,9 @@ tokens = {
 
 -- Look at the next token (don't consume).
 function VergeC.peek(this)
-    code = this.code
-    index = this.index
-
-    -- first, skip whitespace
-    local m = string.match(code, "^%s*", index)
-    if m then index = index + string.len(m) end
+    local code = this.code
+    local index = this.index
+    local codelen = string.len(code)
 
     for x,p in ipairs(tokens) do
         local m = string.match(code, '^'..p[2], index)
@@ -37,11 +34,12 @@ function VergeC.peek(this)
                     if c == '\\' then
                         index = index + 1
                         c = string.sub(code, index, index)
-                        if c == 'n' then c = "\n"
-                        elseif c == 'b' then c = "\b"
-                        elseif c == 'r' then c = "\r"
-                        elseif c == 'f' then c = "\f"
-                        elseif c == 't' then c = "\t"
+                        if c == 'n' then c = "\\n"
+                        elseif c == 'b' then c = "\\b"
+                        elseif c == 'r' then c = "\\r"
+                        elseif c == 'f' then c = "\\f"
+                        elseif c == 't' then c = "\\t"
+                        elseif c == '"' then c = "\\\""
                         end
                     end
                     m = m .. c
@@ -53,6 +51,16 @@ function VergeC.peek(this)
                 if string.sub(code, index+2, index+2) == "'" then
                     m = string.sub(code, index+1, index+1)
                     index = index + 3
+                elseif string.sub(code, index+1, index+1) == '\\' and string.sub(code, index+3, index+3) == "'" then
+                    c = string.sub(code, index+2, index+2)
+                    if c == 'n' then c = "\\n"
+                    elseif c == 'b' then c = "\\b"
+                    elseif c == 'r' then c = "\\r"
+                    elseif c == 'f' then c = "\\f"
+                    elseif c == 't' then c = "\\t"
+                    elseif c == '"' then c = "\\\""
+                    end
+                    m = c
                 else
                     -- if we hit here, the tokenizing has failed
                     return nil, nil, index
@@ -69,19 +77,16 @@ function VergeC.peek(this)
 end
 
 -- Consume the next token.
-function VergeC.consume(this)
-    index = this.index
-    
-    -- first, consume whitespace
-    local m = string.match(code, "^%s*", index)
-    if m then index = index + string.len(m) end
-
-    -- get the next token
-    local t
-    local v
-    t, v, index = this:peek()
-    
-    -- consume it
+function VergeC.consume(this, index)
     this.index = index
+    
+    -- skip whitespace and comments
+    local m = true -- just stuff this with a not-false value so the loop executes at least once
+    while m do
+        m = string.match(this.code, "^%s+", this.index) or string.match(this.code, "^//.-\n", this.index) or string.match(this.code, "^/%*.-%*/", this.index)
+        --print("Consuming whitespace <" .. tostring(m) .. ">")
+        if m then this.index = this.index + string.len(m) end
+    end
+    
     if this.index > this.furthestindex then this.furthestindex = this.index end
 end

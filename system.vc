@@ -1,13 +1,14 @@
+
 //int x = 5;
 //int y;
 
 void autoexec() {
-    int x = 0;
-    x = add(x);
-    x = add(x);
-    x = add(x);
+    int x = -2;
     x = add(x);
     log(x);
+
+    x = -1;
+    log(abs(x));
 }
 
 int add(int x = 1, int y = 1) {
@@ -16,11 +17,11 @@ int add(int x = 1, int y = 1) {
     return x + y;
 }
 
-//int abs(int x) {
-//    if ( x > 0 )
-//        return x;
-//    return -x;
-//}
+int abs(int x) {
+    if ( x > 0 )
+        return x;
+    return -x;
+}
 
 //void autoexec() {
 //    int x = 1;
@@ -39,4 +40,3 @@ int add(int x = 1, int y = 1) {
 //
 //    x = add(5,6);
 //}
-

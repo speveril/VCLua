@@ -26,6 +26,22 @@ function VergeC.emit(this, str)
     this.compiledcode = this.compiledcode .. str
 end
 
+function VergeC.findVarInScope(this, varname)
+    print("Searching scope for " .. varname)
+    
+    level = #this.scope
+    
+    while level > 0 do
+        print("SCOPE LEVEL " .. level .. "...")
+        if this.scope[level][varname] then
+            return this.scope[level][varname], level
+        end
+        level = level - 1
+    end
+    
+    return nil, level
+end
+
 function VergeC.compileNode(this, node)
     if not node then return end
     
@@ -42,10 +58,10 @@ function VergeC.compileNode(this, node)
         
         -- TODO need to pay attention to type somehow
         if this.scope[scope][node[2]] then
-            v3.exit("VERGEC: Compile error\n   Global variable '" .. node.name .. "'")
+            VergeC.error("COMPILE ERROR\n  Redeclaration of global variable '" .. node.name .. "'", node.index)
         else
             if name[2] ~= 'globalvar' then this:emit("local ") end
-            this.scope[1][node[2]] = { type = node[1].token_type, ident = node[2].value }
+            this.scope[1][node[2].value] = { type = node[1].token_type, ident = node[2].value }
             this:emit(node[2].value .. " = ")
             if node[3] then
                 this:compileNode(node[3])
@@ -61,24 +77,28 @@ function VergeC.compileNode(this, node)
         end
         
     elseif name[1] == 'func' then
+        -- currently we only support global functions
         if name[2] == 'globalfunc' then
-            table.insert(this.scope, {})
-            local localscope = this.scope[#this.scope]
+            -- create new scope level
+            local localscope = {}
+            local params = {}
+            table.insert(this.scope, localscope)
             
             -- build function head and signature
             local first = true
             this:emit("function VergeC.bin." .. node[2].value .. "(")
             for i,v in ipairs(node[3]) do
                 if first then first = false else this:emit(",") end
-                -- TODO need to pay attention to type somehow
+                
                 this:emit(v[2].value)
-                table.insert(localscope, { type = v[1].token_type, ident = v[2].value, init = v[3] })
+                table.insert(params, { type = v[1].token_type, ident = v[2].value, init = v[3] })
             end
             this:emit(")\n")
             
-            -- do inits
-            
-            for i,v in ipairs(localscope) do
+            -- do inits            
+            for i,v in pairs(params) do
+                localscope[v.ident] = v
+                
                 this:emit('if ' .. v.ident .. ' == nil then ' .. v.ident .. ' = ')
                 if v.init then
                     this:compileNode(v.init)
@@ -92,12 +112,23 @@ function VergeC.compileNode(this, node)
                 this:emit(" end\n")
             end
             
+            -- TODO need to enforce type on params somehow
+            
+            -- compile the function body
             if node[4] then this:compileNode(node[4]) end
             this:emit("end\n\n")
             
+            -- pop off this function's scope
             table.remove(this.scope)
         end
-        
+    
+    elseif name[1] == 'IfStatement' then
+        this:emit("if ")
+        this:compileNode(node[1])
+        this:emit(" then \n")
+        this:compileNode(node[2])
+        this:emit("end")
+    
     elseif name[1] == 'statement' then
         this:compileNode(node[1])
         this:emit("\n")
@@ -138,18 +169,27 @@ function VergeC.compileNode(this, node)
     -- then deal with generic types
     elseif node.type == 'EXPR' then
         this:compileNode(node[1])
+    
     elseif node.type == 'TOKEN' then
         if node.token_type == 'NUMBER'
             or node.token_type == 'OP_ADD' or node.token_type == 'OP_SUB' or node.token_type == 'OP_MLT' or node.token_type == 'OP_DIV'
             or node.token_type == 'OP_ASSIGN' or node.token_type == 'OP_EQ'
+            or node.token_type == 'OP_GT' or node.token_type == 'OP_LT' or node.token_type == 'OP_GTE' or node.token_type == 'OP_LTE'
         then
             this:emit(node.value)
+        elseif node.token_type == 'OP_NE' then
+            this:emit("~=")
         elseif node.token_type == 'STRING' then
             this:emit('"' .. node.value .. '"')
         elseif node.token_type == 'IDENT' then
             -- TODO check through scope to see if the identifier's been defined yet
-            this:emit(node.value)
+            if VergeC.findVarInScope(this, node.value) then
+                this:emit(node.value)
+            else
+                VergeC.error("COMPILE ERROR\n  Unknown variable '" .. node.value .. "'.", node.index)
+            end
         end
+    
     elseif node.type == 'SEQ' then
         for i,v in ipairs(node) do
             this:compileNode(v)

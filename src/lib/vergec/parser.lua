@@ -50,7 +50,7 @@ VergeC.parsing_expressions = {
    
     Statement = named('statement',choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
     
-    IfStatement = seq(token('KEY_IF'), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement')))),
+    IfStatement = seq(ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement')))),
     WhileStatement = seq(token('KEY_WHILE'), ignore(token('PAREN_OPEN')), parsex('Expr'), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
     ForStatement = seq(token('KEY_FOR'), ignore(token('PAREN_OPEN')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
     ReturnStatement = collapse(seq(ignore(token('KEY_RETURN')), named('return',parsex('Expr')))),
@@ -99,13 +99,14 @@ function VergeC.parse(this, what)
     if type == 'DEBUG_PRINT' then
         print(what.s)
     elseif type == 'EMPTY' then
-        node = { name=what.name, collapse=what.collapse, type='EMPTY', value='' }
+        node.value = ''
         parsed = true
     elseif type == 'TOKEN' then
-        local ty,val = this:peek()
+        local ty,val,idx = this:peek()
         if ty == what[1] then
-            this:consume()
-            node = { name=what.name, collapse=what.collapse, type='TOKEN', value=val, token_type=ty }
+            this:consume(idx)
+            node.token_type = ty
+            node.value = val
             parsed = true
         end
     elseif type == 'EXPR' then
@@ -130,7 +131,6 @@ function VergeC.parse(this, what)
         local i,v
         local child,succ
         
-        node = { name=what.name, collapse=what.collapse, type='SEQ' }
         parsed = true
         
         for i,v in ipairs(what) do
@@ -169,7 +169,7 @@ function VergeC.parse(this, what)
         local child,succ
         local at_least_one = false
         
-        node = { name=what.name, collapse=what.collapse, type='SEQ' }
+        node.type = 'SEQ'
         parsed = true -- Zero-or-more can't ever fail
         
         while true do
@@ -194,7 +194,7 @@ function VergeC.parse(this, what)
         local child,succ
         local at_least_one = false
         
-        node = { name=what.name, collapse=what.collapse, type='SEQ' }
+        node.type = 'SEQ'
         
         while true do
             local v = what[1]
@@ -230,6 +230,7 @@ function VergeC.parse(this, what)
     end
     
     if what.ignore then node = nil end
+    if node then node.index = this.index end
     
     if not parsed then
         this.index = startindex

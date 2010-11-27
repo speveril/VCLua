@@ -10,10 +10,6 @@ function string.split(str, div)
     return arr
 end
 
-VergeC.libfuncs = {
-    log = function(this, str) this:emit('v3.log(') this:compileNode(str) this:emit(')') end,
-}
-
 function VergeC.compile(this)
     print("COMPILE STEP")
     
@@ -27,12 +23,9 @@ function VergeC.emit(this, str)
 end
 
 function VergeC.findVarInScope(this, varname)
-    print("Searching scope for " .. varname)
-    
     level = #this.scope
     
     while level > 0 do
-        print("SCOPE LEVEL " .. level .. "...")
         if this.scope[level][varname] then
             return this.scope[level][varname], level
         end
@@ -123,9 +116,9 @@ function VergeC.compileNode(this, node)
         end
     
     elseif name[1] == 'IfStatement' then
-        this:emit("if ")
+        this:emit("if VergeC.runtime.truth(")
         this:compileNode(node[1])
-        this:emit(" then \n")
+        this:emit(") then \n")
         this:compileNode(node[2])
         this:emit("end")
     
@@ -136,8 +129,8 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'FuncCall' then
         local funcname = node[1].value
         
-        if VergeC.libfuncs[funcname] then
-            VergeC.libfuncs[funcname](this, unpack(node[2]))
+        if VergeC.runtime.libfunc[funcname] then
+            VergeC.runtime.libfunc[funcname](this, unpack(node[2]))
         else
             local first = true
             this:emit('VergeC.bin.' .. funcname .. '(')
@@ -155,14 +148,34 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'binop' then
         local opstep = false
         local assign = false
-        for i,v in ipairs(node) do
-            if not opstep and node[i+1] and node[i+1].token_type == 'OP_ASSIGN' then assign = true end
+        local i = 1
+        local childcount = #node
+                
+        -- We're not doing chains of binops yet
+        if childcount == 3 then
+            local lhs = node[i]
+            local op = node[2].token_type
+            local rhs = node[i+2]
             
-            if not assign and not opstep then this:emit("(") end
-            this:compileNode(v)
-            if not assign and not opstep then this:emit(") ") else this:emit(" ") end
-            assign = false
-            opstep = not opstep
+            -- special case ops; in these cases we can't just let Lua do its default thing because
+            -- VergeC has a different idea of how things work
+            if VergeC.runtime.op[op] then
+                this:emit('VergeC.runtime.op.' .. op .. '(') this:compileNode(lhs) this:emit(', ') this:compileNode(rhs) this:emit(')')
+            elseif op == 'OP_ASSIGN' then
+                this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
+            else
+                this:emit('(') this:compileNode(lhs) this:emit(') ') this:compileNode(node[2]) this:emit(' (') this:compileNode(rhs) this:emit(') ')
+            end
+        else
+            --for i,v in ipairs(node) do
+            --    if not opstep and node[i+1] and node[i+1].token_type == 'OP_ASSIGN' then assign = true end
+            --    
+            --    if not assign and not opstep then this:emit("(") end
+            --    this:compileNode(v)
+            --    if not assign and not opstep then this:emit(") ") else this:emit(" ") end
+            --    assign = false
+            --    opstep = not opstep
+            --end
         end
         
     

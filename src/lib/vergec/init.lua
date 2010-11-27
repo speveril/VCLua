@@ -7,6 +7,7 @@ require('vergec.preprocessor')
 require('vergec.tokenizer')
 require('vergec.parser')
 require('vergec.compiler')
+require('vergec.runtime')
 
 function VergeC.newModule()
     local m = {}
@@ -26,6 +27,8 @@ function VergeC.newModule()
     m.compile = VergeC.compile
     m.emit = VergeC.emit
     m.compileNode = VergeC.compileNode
+    
+    m.outputCode = VergeC.outputCode
     
     return m
 end
@@ -94,7 +97,7 @@ function VergeC.loadfile(filename)
     print("")
     print("LUA SOURCE:")
     
-    print(module.compiledcode)
+    module:outputCode(true)
     
     assert(loadstring(module.compiledcode))()
     
@@ -126,6 +129,28 @@ function VergeC.printAST(ast, indent, norecurse)
     if not norecurse then
         for i,v in ipairs(ast) do
             VergeC.printAST(v,indent+2)
+        end
+    end
+end
+
+function VergeC.outputCode(this, linenums)
+    if not linenums then
+        print(this.compiledcode)
+    else
+        local linenum = 1
+        local linestart = 1
+        local lineend = string.find(this.compiledcode, "\n", linestart, true)
+        local ln = string.sub(this.compiledcode, linestart, lineend - 1)
+        local codelen = string.len(this.compiledcode)
+        
+        while lineend < codelen do
+            print(linenum .. "." .. "\t" .. ln)
+            linenum = linenum + 1
+            linestart = lineend + 1
+            lineend = string.find(this.compiledcode, "\n", linestart, true)
+            if not lineend then break end
+            
+            ln = string.sub(this.compiledcode, linestart, lineend - 1)
         end
     end
 end

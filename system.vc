@@ -2,7 +2,7 @@
 int y = 0;
 
 void autoexec() {
-    if ( y ) {
+    if ( !y ) {
         log("True!");
     }
     

@@ -12,7 +12,7 @@ tokens = {
     {'BRACE_OPEN','{'},{'BRACE_CLOSE','}'},{'BRACKET_OPEN','%['},{'BRACKET_CLOSE','%]'},{'PAREN_OPEN','%('},{'PAREN_CLOSE','%)'},
     {'COMMA',','}, {'DOT','%.'},
     {'NUMBER','%d+'},{'CHAR',"'"},{'STRING','"'}, -- string and character have special handling; see VergeC.peek
-    {'IDENT', '%w+'},{'SEMICOLON',';'}
+    {'IDENT', '[_%w][_%w%d]*'},{'SEMICOLON',';'}
     
     -- NUMBER -> %d+(%.%d+)?
 }

@@ -68,7 +68,7 @@ VergeC.parsing_expressions = {
     Product = choice(collapse(named('binop', seq(parsex('PrefixOp'), collapse(one_or_more(collapse(seq(choice(token('OP_MLT'), token('OP_DIV')), parsex('PrefixOp')))))))), collapse(parsex('PrefixOp'))),
     Sum = choice(collapse(named('binop', seq(parsex('Product'), collapse(one_or_more(collapse(seq(choice(token('OP_ADD'), token('OP_SUB')), parsex('Product')))))))), collapse(parsex('Product'))),
     Comparison = choice(collapse(named('binop', seq(parsex('Sum'), collapse(one_or_more(collapse(seq(choice(token('OP_EQ'), token('OP_NE'), token('OP_LTE'), token('OP_GTE'), token('OP_LT'), token('OP_GT')), parsex('Sum')))))))), collapse(parsex('Sum'))),
-    BooleanOp = choice(collapse(named('binop', seq(parsex('Comparison'), collapse(one_or_more(collapse(seq(choice(token('OP_BOOLAND'), token('OP_BOOLOR')), parsex('Comparison')))))))), collapse(parsex('Comparison'))),
+    BooleanOp = choice(collapse(named('binop', seq(parsex('Comparison'), collapse(one_or_more(collapse(seq(choice(token('OP_AND'), token('OP_OR')), parsex('Comparison')))))))), collapse(parsex('Comparison'))),
     Assignment = choice(collapse(named('binop',seq(parsex('BooleanOp'), collapse(one_or_more(collapse(seq(token('OP_ASSIGN'), parsex('BooleanOp')))))))), collapse(parsex('BooleanOp'))),
     Expr = parsex('Assignment'),
 }

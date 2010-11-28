@@ -25,12 +25,8 @@ end
 function VergeC.findVarInScope(this, varname)
     level = #this.scope
     
-    print("Doing findVarInScope... looking for " .. varname)
-    
     while level > 0 do
-        print("  At level " .. level .. "...")
         if this.scope[level][varname] then
-            print("    Found it!")
             return this.scope[level][varname], level
         end
         level = level - 1
@@ -181,7 +177,15 @@ function VergeC.compileNode(this, node)
             --    opstep = not opstep
             --end
         end
-        
+    
+    elseif name[1] == 'preop' then
+        if VergeC.runtime.op[node[1].token_type] then
+            this:emit('VergeC.runtime.op.' .. node[1].token_type .. '(') this:compileNode(node[2]) this:emit(')')
+        elseif op == 'OP_ASSIGN' then
+            this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
+        else
+            this:compileNode(node[1]) this:emit(' (') this:compileNode(node[2]) this:emit(') ')
+        end
     
     -- then deal with generic types
     elseif node.type == 'EXPR' then

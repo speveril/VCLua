@@ -25,8 +25,12 @@ end
 function VergeC.findVarInScope(this, varname)
     level = #this.scope
     
+    print("Doing findVarInScope... looking for " .. varname)
+    
     while level > 0 do
+        print("  At level " .. level .. "...")
         if this.scope[level][varname] then
+            print("    Found it!")
             return this.scope[level][varname], level
         end
         level = level - 1
@@ -54,7 +58,7 @@ function VergeC.compileNode(this, node)
             VergeC.error("COMPILE ERROR\n  Redeclaration of global variable '" .. node.name .. "'", node.index)
         else
             if name[2] ~= 'globalvar' then this:emit("local ") else this:emit("VergeC.bin.") end
-            this.scope[1][node[2].value] = { type = node[1].token_type, ident = node[2].value }
+            this.scope[#this.scope][node[2].value] = { type = node[1].token_type, ident = node[2].value }
             this:emit(node[2].value .. " = ")
             if node[3] then
                 this:compileNode(node[3])

@@ -122,6 +122,13 @@ function VergeC.compileNode(this, node)
         this:compileNode(node[2])
         this:emit("end")
     
+    elseif name[1] == 'WhileStatement' then
+        this:emit("while VergeC.runtime.truth(")
+        this:compileNode(node[1])
+        this:emit(") do \n")
+        this:compileNode(node[2])
+        this:emit("end")
+    
     elseif name[1] == 'statement' then
         this:compileNode(node[1])
         this:emit("\n")
@@ -181,12 +188,21 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'preop' then
         if VergeC.runtime.op[node[1].token_type] then
             this:emit('VergeC.runtime.op.' .. node[1].token_type .. '(') this:compileNode(node[2]) this:emit(')')
-        elseif op == 'OP_ASSIGN' then
+        elseif op == 'OP_INCREMENT' then
             this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
         else
             this:compileNode(node[1]) this:emit(' (') this:compileNode(node[2]) this:emit(') ')
         end
-    
+
+    elseif name[1] == 'postop' then
+        if VergeC.runtime.op[node[2].token_type] then
+            this:emit('VergeC.runtime.op.' .. node[2].token_type .. '(') this:compileNode(node[1]) this:emit(')')
+        elseif op == 'OP_INCREMENT' then
+            this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
+        else
+            this:emit(' (') this:compileNode(node[1]) this:emit(') ') this:compileNode(node[2]) 
+        end
+  
     -- then deal with generic types
     elseif node.type == 'EXPR' then
         this:compileNode(node[1])

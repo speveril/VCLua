@@ -51,7 +51,7 @@ VergeC.parsing_expressions = {
     Statement = named('statement',choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
     
     IfStatement = seq(ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement')))),
-    WhileStatement = seq(token('KEY_WHILE'), ignore(token('PAREN_OPEN')), parsex('Expr'), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
+    WhileStatement = seq(ignore(token('KEY_WHILE')), ignore(token('PAREN_OPEN')), collapse(parsex('Expr')), ignore(token('PAREN_CLOSE')), collapse(choice(parsex('Block'), parsex('Statement')))),
     ForStatement = seq(token('KEY_FOR'), ignore(token('PAREN_OPEN')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
     ReturnStatement = collapse(seq(ignore(token('KEY_RETURN')), named('return',parsex('Expr')))),
 

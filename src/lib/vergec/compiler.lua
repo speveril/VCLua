@@ -10,16 +10,17 @@ function string.split(str, div)
     return arr
 end
 
+function VergeC.emit(this, str)
+    this.compiledcode = this.compiledcode .. str
+end
+
 function VergeC.compile(this)
     print("COMPILE STEP")
     
     this.scope = { {} } -- scope[1] is global scope, which we always have
     
+    this.ast = this:cleanNode(this.ast)
     this:compileNode(this.ast)
-end
-
-function VergeC.emit(this, str)
-    this.compiledcode = this.compiledcode .. str
 end
 
 function VergeC.findVarInScope(this, varname)
@@ -33,6 +34,13 @@ function VergeC.findVarInScope(this, varname)
     end
     
     return nil, level
+end
+
+function VergeC.cleanNode(this, node)
+    for i,v in ipairs(node) do
+        node[i] = this:cleanNode(v)
+    end
+    return node
 end
 
 function VergeC.compileNode(this, node)

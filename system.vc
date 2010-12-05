@@ -1,16 +1,18 @@
 //int x = 5;
-int y = 0;
+int y = 1;
 
 void autoexec() {
-    int x = 0;
+    int x = 1;
     
     y = ++x;
-    
+
     if ( x )
         log("blart");
     
     for (int i = 0; i < 10; i++) {
-        log("blurt");
+        //if ( i == 5) continue;
+        if ( i == 7) break;
+        log(i);
     }
     
     while ( x < 10 ) {

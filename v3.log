@@ -1,13 +1,8 @@
-blart
-blurt
-blurt
-blurt
-blurt
-blurt
-blurt
-blurt
-blurt
-blurt
-blurt
-10
-11
+Exiting: 
+Error when calling 'autoexec': src/lib/vergec/init.lua:103: [string "VergeC.bin.y = 1..."]:12: unexpected symbol near ';'
+
+stack traceback:
+	[string "..."]:3: in function <[string "..."]:2>
+	[C]: in function 'assert'
+	src/lib/vergec/init.lua:103: in function 'loadfile'
+	[string "system.lua"]:6: in function <[string "system.lua"]:5>

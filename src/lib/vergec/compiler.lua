@@ -131,13 +131,19 @@ function VergeC.compileNode(this, node)
         this:emit("end")
     
     elseif name[1] == 'WhileStatement' then
+        table.insert(this.scope, {})
+        this:emit('do\n') -- wrapping this in a do/end so we maintain a local scope
         this:emit("while VergeC.runtime.truth(")
         this:compileNode(node[1])
         this:emit(") do \n")
         this:compileNode(node[2])
-        this:emit("end")
+        this:emit("end\n")
+        this:emit('end')
+        table.remove(this.scope)
     
     elseif name[1] == 'ForStatement' then
+        table.insert(this.scope, {})
+        this:emit('do\n') -- wrapping this in a do/end so we maintain a local scope
         this:compileNode(node[1])
         this:emit("\n")
         this:emit("while VergeC.runtime.truth(")
@@ -146,7 +152,9 @@ function VergeC.compileNode(this, node)
         this:compileNode(node[4])
         this:compileNode(node[3])
         this:emit(";\n")
-        this:emit("end")
+        this:emit("end\n")
+        this:emit('end')
+        table.remove(this.scope)
     
     elseif name[1] == 'statement' then
         this:compileNode(node[1])
@@ -168,8 +176,9 @@ function VergeC.compileNode(this, node)
         end
     
     elseif name[1] == 'return' then
-        this:emit('return ')
+        this:emit('do return ') -- wrap return in do ... end so we can return in the middle of a function
         this:compileNode(node[1])
+        this:emit(' end')
 
     elseif name[1] == 'binop' then
         local opstep = false
@@ -269,11 +278,14 @@ function VergeC.compileNode(this, node)
             this:emit("~=")
         elseif node.token_type == 'STRING' then
             this:emit('"' .. node.value .. '"')
+        elseif node.token_type == 'KEY_BREAK' then
+            this:emit('do break end')
         elseif node.token_type == 'IDENT' then
             -- TODO check through scope to see if the identifier's been defined yet
             local found, scopelevel
             found, scopelevel = VergeC.findVarInScope(this, node.value)
             if found then
+                print("FOUND VAR "..found.ident.." AT SCOPE LEVEL "..scopelevel)
                 if level == 1 then this:emit("VergeC.bin.") end
                 this:emit(node.value)
             else

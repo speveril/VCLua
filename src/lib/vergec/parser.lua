@@ -48,12 +48,12 @@ VergeC.parsing_expressions = {
     Block = seq(ignore(token('BRACE_OPEN')), named('block',collapse(parsex('StatementList'))), ignore(token('BRACE_CLOSE'))),
     StatementList = collapse(zero_or_more(collapse(parsex('Statement')))),
    
-    Statement = named('statement',choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
+    Statement = named('statement',choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), token('KEY_BREAK'), token('KEY_CONTINUE'), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
     
     IfStatement = seq(ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement')))),
     WhileStatement = seq(ignore(token('KEY_WHILE')), ignore(token('PAREN_OPEN')), collapse(parsex('Expr')), ignore(token('PAREN_CLOSE')), collapse(choice(parsex('Block'), parsex('Statement')))),
     ForStatement = seq(ignore(token('KEY_FOR')), ignore(token('PAREN_OPEN')), collapse(choice(parsex('Expr'),parsex('Decl'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
-    ReturnStatement = collapse(seq(ignore(token('KEY_RETURN')), named('return',parsex('Expr')))),
+    ReturnStatement = collapse(seq(ignore(token('KEY_RETURN')), named('return',collapse(choice(parsex('Expr'), empty()))))),
 
     FuncCall = seq(token('IDENT'), collapse(parsex('ArgList'))),
     ArgList = seq(ignore(token('PAREN_OPEN')), optional(collapse(seq(parsex('Expr'), collapse(zero_or_more(collapse(seq(ignore(token('COMMA')),parsex('Expr')))))))), ignore(token('PAREN_CLOSE'))),

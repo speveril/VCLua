@@ -4,6 +4,5 @@ require('vergec')
 
 function autoexec()
     m = VergeC.loadfile("system.vc")
-    
     VergeC.call('autoexec', {})
 end

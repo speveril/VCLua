@@ -52,7 +52,7 @@ VergeC.parsing_expressions = {
     
     IfStatement = seq(ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement')))),
     WhileStatement = seq(ignore(token('KEY_WHILE')), ignore(token('PAREN_OPEN')), collapse(parsex('Expr')), ignore(token('PAREN_CLOSE')), collapse(choice(parsex('Block'), parsex('Statement')))),
-    ForStatement = seq(token('KEY_FOR'), ignore(token('PAREN_OPEN')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('SEMICOLON')), optional(parsex('Expr')), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
+    ForStatement = seq(ignore(token('KEY_FOR')), ignore(token('PAREN_OPEN')), collapse(choice(parsex('Expr'),parsex('Decl'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
     ReturnStatement = collapse(seq(ignore(token('KEY_RETURN')), named('return',parsex('Expr')))),
 
     FuncCall = seq(token('IDENT'), collapse(parsex('ArgList'))),

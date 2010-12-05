@@ -137,9 +137,20 @@ function VergeC.compileNode(this, node)
         this:compileNode(node[2])
         this:emit("end")
     
-    elseif name[1] == 'statement' then
+    elseif name[1] == 'ForStatement' then
         this:compileNode(node[1])
         this:emit("\n")
+        this:emit("while VergeC.runtime.truth(")
+        this:compileNode(node[2])
+        this:emit(") do \n")
+        this:compileNode(node[4])
+        this:compileNode(node[3])
+        this:emit(";\n")
+        this:emit("end")
+    
+    elseif name[1] == 'statement' then
+        this:compileNode(node[1])
+        this:emit(";\n")
     
     elseif name[1] == 'FuncCall' then
         local funcname = node[1].value
@@ -159,7 +170,7 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'return' then
         this:emit('return ')
         this:compileNode(node[1])
-    
+
     elseif name[1] == 'binop' then
         local opstep = false
         local assign = false
@@ -196,8 +207,26 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'preop' then
         if VergeC.runtime.op[node[1].token_type] then
             this:emit('VergeC.runtime.op.' .. node[1].token_type .. '(') this:compileNode(node[2]) this:emit(')')
-        elseif op == 'OP_INCREMENT' then
-            this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
+        elseif node[1].token_type == 'OP_INCREMENT' or node[1].token_type == 'OP_DECREMENT' then
+            -- this is hideous, let me explain...
+            --  This creates a line something like this... ++x becomes
+            --   (function() x = x + 1; return x; end)()
+            --  What this does is creates a local function which has access to local
+            --  variables of its parent. The function adds one to the variable, and
+            --  then returns the new value. We CAN'T do this as a VergeC.runtime
+            --  function, because there is no way to pass locals by reference in Lua.
+            --  This local function is called immediately, thus producing the side
+            --  effect AND getting the value.
+            this:emit('(function() ')
+            this:compileNode(node[2])
+            this:emit(' = ')
+            this:compileNode(node[2])
+            if node[1].token_type == 'OP_INCREMENT' then this:emit(' + ')
+            elseif node[1].token_type == 'OP_DECREMENT' then this:emit(' - ')
+            end
+            this:emit('1; return ')
+            this:compileNode(node[2])
+            this:emit('; end)()')
         else
             this:compileNode(node[1]) this:emit(' (') this:compileNode(node[2]) this:emit(') ')
         end
@@ -205,8 +234,22 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'postop' then
         if VergeC.runtime.op[node[2].token_type] then
             this:emit('VergeC.runtime.op.' .. node[2].token_type .. '(') this:compileNode(node[1]) this:emit(')')
-        elseif op == 'OP_INCREMENT' then
-            this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
+        elseif node[2].token_type == 'OP_INCREMENT' or node[2].token_type == 'OP_DECREMENT' then
+            -- See discussion in the preop block above. This works the same way except
+            -- that it returns the original value rather than the new one.
+            this:emit('(function() ')
+            this:compileNode(node[1])
+            this:emit(' = ')
+            this:compileNode(node[1])
+            if node[2].token_type == 'OP_INCREMENT' then this:emit(' + ')
+            elseif node[2].token_type == 'OP_DECREMENT' then this:emit(' - ')
+            end
+            this:emit('1; return ')
+            this:compileNode(node[1])
+            if node[2].token_type == 'OP_INCREMENT' then this:emit(' - ')
+            elseif node[2].token_type == 'OP_DECREMENT' then this:emit(' + ')
+            end
+            this:emit('1; end)()')
         else
             this:emit(' (') this:compileNode(node[1]) this:emit(') ') this:compileNode(node[2]) 
         end

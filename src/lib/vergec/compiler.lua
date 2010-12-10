@@ -57,24 +57,46 @@ function VergeC.compileNode(this, node)
     if name[1] == 'decl' then
         local scope = #this.scope
         
-        -- TODO need to pay attention to type somehow
         if this.scope[scope][node[2]] then
-            VergeC.error("COMPILE ERROR\n  Redeclaration of global variable '" .. node.name .. "'", node.index)
+            VergeC.error("COMPILE ERROR\n  Redeclaration of variable '" .. node.name .. "'", node.index)
         else
             if name[2] ~= 'globalvar' then this:emit("local ") else this:emit("VergeC.bin.") end
-            this.scope[#this.scope][node[2].value] = { type = node[1].token_type, ident = node[2].value }
             this:emit(node[2].value .. " = ")
-            if node[3] then
-                this:compileNode(node[3])
+            
+            local scopeentry = { type = node[1].token_type, ident = node[2].value }
+            if node[3].type == 'SEQ' then -- this means we have an array decl
+                scopeentry.type = scopeentry.type .. "_ARRAY"
+                if node[3][1].type ~= 'EMPTY' then
+                    scopeentry.size = node[3][1].value
+                end
+            end
+            this.scope[#this.scope][node[2].value] = scopeentry
+            
+            if node[4] then
+                this:compileNode(node[4])
             else
-                if node[1].token_type == 'TY_INT' or node[1].token_type == 'TY_FLOAT' then
+                if scopeentry.type == 'TY_INT_ARRAY' or scopeentry.type == 'TY_FLOAT_ARRAY' or scopeentry.type == 'TY_STRING_ARRAY' then
+                    this:emit('{')
+                    if scopeentry.size then
+                        local first = true
+                        for i=1,scopeentry.size do
+                            if first then first = false else this:emit(',') end
+                            if scopeentry.type == 'TY_INT_ARRAY' or scopeentry.type == 'TY_FLOAT_ARRAY' then
+                                this:emit('0')
+                            elseif scopeentry.type == 'TY_STRING_ARRAY' then
+                                this:emit('""')
+                            end
+                        end
+                    end
+                    this:emit('}')
+                elseif scopeentry.type == 'TY_INT' or scopeentry.type == 'TY_FLOAT' then
                     this:emit('0')
-                elseif node[1].token_type == 'TY_FLOAT' then
+                elseif scopeentry.type == 'TY_STRING' then
                     this:emit('""')
                 end
             end
             
-            if name[2] == 'globalvar' then this:emit("\n") end
+            if name[2] == 'globalvar' then this:emit(";\n") end
         end
         
     elseif name[1] == 'func' then
@@ -92,7 +114,7 @@ function VergeC.compileNode(this, node)
                 if first then first = false else this:emit(",") end
                 
                 this:emit(v[2].value)
-                table.insert(params, { type = v[1].token_type, ident = v[2].value, init = v[3] })
+                table.insert(params, { type = v[1].token_type, ident = v[2].value, size = v[3].value, init = v[4] })
             end
             this:emit(")\n")
             
@@ -106,7 +128,7 @@ function VergeC.compileNode(this, node)
                 else
                     if node[1].token_type == 'TY_INT' or node[1].token_type == 'TY_FLOAT' then
                         this:emit('0')
-                    elseif node[1].token_type == 'TY_FLOAT' then
+                    elseif node[1].token_type == 'TY_STRING' then
                         this:emit('""')
                     end
                 end
@@ -285,7 +307,6 @@ function VergeC.compileNode(this, node)
             local found, scopelevel
             found, scopelevel = VergeC.findVarInScope(this, node.value)
             if found then
-                print("FOUND VAR "..found.ident.." AT SCOPE LEVEL "..scopelevel)
                 if level == 1 then this:emit("VergeC.bin.") end
                 this:emit(node.value)
             else

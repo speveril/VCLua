@@ -58,11 +58,11 @@ VergeC.parsing_expressions = {
     FuncCall = seq(token('IDENT'), collapse(parsex('ArgList'))),
     ArgList = seq(ignore(token('PAREN_OPEN')), optional(collapse(seq(parsex('Expr'), collapse(zero_or_more(collapse(seq(ignore(token('COMMA')),parsex('Expr')))))))), ignore(token('PAREN_CLOSE'))),
 
-    Decl = named('decl',seq(named('type',any_type), named('name',token('IDENT')), named('initial',optional(seq(ignore(token('OP_ASSIGN')), collapse(parsex('Expr'))))))),
+    Decl = named('decl',seq(named('type',any_type), named('name',token('IDENT')), collapse(choice(seq(ignore(token('BRACKET_OPEN')), choice(token('NUMBER'),empty()), ignore(token('BRACKET_CLOSE'))),empty())),  named('initial',optional(seq(ignore(token('OP_ASSIGN')), collapse(parsex('Expr'))))))),
 
     -- expression order of operations chain
     --  ordered from binds most-tightly to least-tightly
-    Value = named('value',choice(parsex('FuncCall'), token('IDENT'), token('NUMBER'), token('STRING'), seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE')))),
+    Value = named('value',choice(parsex('FuncCall'), seq(token('IDENT'),ignore(token('BRACKET_OPEN')), collapse(choice(parsex('Expr'),empty())), ignore(token('BRACKET_OPEN'))), token('IDENT'), token('NUMBER'), token('STRING'), seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE')))),
     PostfixOp = choice(named('postop', collapse(seq(parsex('Value'), choice(token('OP_INCREMENT'), token('OP_DECREMENT'))))), collapse(parsex('Value'))),
     PrefixOp = choice(named('preop', collapse(seq(choice(token('OP_NOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp')))), collapse(parsex('PostfixOp'))),
     Product = choice(collapse(named('binop', seq(parsex('PrefixOp'), collapse(one_or_more(collapse(seq(choice(token('OP_MLT'), token('OP_DIV')), parsex('PrefixOp')))))))), collapse(parsex('PrefixOp'))),

@@ -284,7 +284,15 @@ function VergeC.compileNode(this, node)
         else
             this:emit(' (') this:compileNode(node[1]) this:emit(') ') this:compileNode(node[2]) 
         end
-  
+    
+    elseif name[1] == 'value' and #node > 1 then
+        this:compileNode(node[1])
+        if #node > 1 then
+            this:emit('[1 + ')
+            this:compileNode(node[2])
+            this:emit(']')
+        end
+    
     -- then deal with generic types
     elseif node.type == 'EXPR' then
         this:compileNode(node[1])
@@ -303,7 +311,6 @@ function VergeC.compileNode(this, node)
         elseif node.token_type == 'KEY_BREAK' then
             this:emit('do break end')
         elseif node.token_type == 'IDENT' then
-            -- TODO check through scope to see if the identifier's been defined yet
             local found, scopelevel
             found, scopelevel = VergeC.findVarInScope(this, node.value)
             if found then

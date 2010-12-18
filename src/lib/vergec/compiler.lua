@@ -14,6 +14,24 @@ function VergeC.emit(this, str)
     this.compiledcode = this.compiledcode .. str
 end
 
+function VergeC.search(this, nodetype, start)
+    if not start then start = this.ast end
+    
+    if start.type == nodetype then
+        return start
+    end
+    
+    local rtn = nil
+    local i,v
+    
+    for i,v in ipairs(start) do
+        rtn = this:search(nodetype, v)
+        if rtn then break end
+    end
+    
+    return rtn
+end
+
 function VergeC.compile(this)
     print("COMPILE STEP")
     
@@ -158,7 +176,10 @@ function VergeC.compileNode(this, node)
         this:emit("while VergeC.runtime.truth(")
         this:compileNode(node[1])
         this:emit(") do \n")
+        this:emit("repeat\n")
         this:compileNode(node[2])
+        this:emit("until true\n")
+        this:emit("if VergeC.fullbreak then VergeC.fullbreak=false; break end\n")
         this:emit("end\n")
         this:emit('end')
         table.remove(this.scope)
@@ -171,9 +192,12 @@ function VergeC.compileNode(this, node)
         this:emit("while VergeC.runtime.truth(")
         this:compileNode(node[2])
         this:emit(") do \n")
+        this:emit("repeat\n")
         this:compileNode(node[4])
+        this:emit("until true\n")
         this:compileNode(node[3])
         this:emit(";\n")
+        this:emit("if VergeC.fullbreak then VergeC.fullbreak=false; break end\n")
         this:emit("end\n")
         this:emit('end')
         table.remove(this.scope)
@@ -309,6 +333,8 @@ function VergeC.compileNode(this, node)
         elseif node.token_type == 'STRING' then
             this:emit('"' .. node.value .. '"')
         elseif node.token_type == 'KEY_BREAK' then
+            this:emit('do VergeC.fullbreak = true; break end')
+        elseif node.token_type == 'KEY_CONTINUE' then
             this:emit('do break end')
         elseif node.token_type == 'IDENT' then
             local found, scopelevel

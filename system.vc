@@ -3,8 +3,14 @@
 
 void autoexec() {
     int arr[5];
-    int x = 6;
+    int x = 4747;
     
+    for (int i = 0; i < 10; i++) {
+        if ( i == 5) continue;
+        if ( i == 7) break;
+        log(i);
+    }
+
     arr[0] = x++;
     arr[1] = x++;
     arr[2] = x++;
@@ -23,11 +29,6 @@ void autoexec() {
 //    if ( x )
 //        log("blart");
 //    
-//    for (int i = 0; i < 10; i++) {
-//        //if ( i == 5) continue;
-//        if ( i == 7) break;
-//        log(i);
-//    }
 //    
 //    while ( x < 10 ) {
 //        x++;

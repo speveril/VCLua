@@ -28,6 +28,7 @@ function VergeC.newModule()
     m.emit = VergeC.emit
     m.cleanNode = VergeC.cleanNode
     m.compileNode = VergeC.compileNode
+    m.search = VergeC.search
     
     m.outputCode = VergeC.outputCode
     

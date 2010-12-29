@@ -36,11 +36,13 @@ function and_predicate(...) return { type='AND', ... } end      -- &e
 function not_predicate(...) return { type='NOT', ... } end      -- !e
 
 -- some special shorthand expressions
-local any_type = choice(token('TY_VOID'), token('TY_INT'), token('TY_STRING'), token('TY_FLOAT'))
+local any_type = choice(token('TY_VOID'), token('TY_INT'), token('TY_STRING'), token('TY_FLOAT'), token('IDENT'))
 
 VergeC.parsing_expressions = {
     GlobalList = one_or_more(collapse(parsex('GlobalDecl'))),
-    GlobalDecl = choice(collapse(named('globalfunc',parsex('FuncDecl'))), seq(collapse(named('globalvar',parsex('Decl'))),ignore(token('SEMICOLON')))),
+    GlobalDecl = choice(collapse(named('globalfunc', parsex('FuncDecl'))), seq(collapse(named('globalvar',parsex('StructDecl'))),ignore(token('SEMICOLON'))), seq(collapse(named('globalvar',parsex('Decl'))),ignore(token('SEMICOLON')))),
+    
+    StructDecl = seq(ignore(token('KEY_STRUCT')), token('IDENT'), ignore(token('BRACE_OPEN')), zero_or_more(collapse(seq(collapse(named('membervar',parsex('Decl'))),ignore(token('SEMICOLON'))))), ignore(token('BRACE_CLOSE'))),
     
     FuncDecl = named('func',seq(any_type, named('name',token('IDENT')), named('args',collapse(parsex('ArgDefn'))), named('body',collapse(parsex('Block'))))),
     ArgDefn = collapse(seq(ignore(token('PAREN_OPEN')), choice(seq(collapse(parsex('Decl')), collapse(zero_or_more(collapse(seq(ignore(token('COMMA')),collapse(parsex('Decl'))))))),empty()), ignore(token('PAREN_CLOSE')))),
@@ -62,7 +64,17 @@ VergeC.parsing_expressions = {
 
     -- expression order of operations chain
     --  ordered from binds most-tightly to least-tightly
-    Value = named('value',choice(parsex('FuncCall'), seq(token('IDENT'),ignore(token('BRACKET_OPEN')), collapse(choice(parsex('Expr'),empty())), ignore(token('BRACKET_CLOSE'))), token('IDENT'), token('NUMBER'), token('STRING'), seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE')))),
+    Value = named('value',choice(
+        parsex('FuncCall'),
+        collapse(seq(
+            token('IDENT'),
+            optional(collapse(collapse(seq(ignore(token('BRACKET_OPEN')), collapse(choice(collapse(parsex('Expr')), empty())), ignore(token('BRACKET_CLOSE')))))),
+            optional(collapse(seq(ignore(token('DOT')), collapse(parsex('Value')))))
+        )),
+        token('NUMBER'),
+        token('STRING'),
+        seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE'))
+    )),
     PostfixOp = choice(named('postop', collapse(seq(parsex('Value'), choice(token('OP_INCREMENT'), token('OP_DECREMENT'))))), collapse(parsex('Value'))),
     PrefixOp = choice(named('preop', collapse(seq(choice(token('OP_NOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp')))), collapse(parsex('PostfixOp'))),
     Product = choice(collapse(named('binop', seq(parsex('PrefixOp'), collapse(one_or_more(collapse(seq(choice(token('OP_MLT'), token('OP_DIV')), parsex('PrefixOp')))))))), collapse(parsex('PrefixOp'))),

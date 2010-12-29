@@ -10,6 +10,8 @@ function string.split(str, div)
     return arr
 end
 
+VergeC.typedefs = {}
+
 function VergeC.emit(this, str)
     this.compiledcode = this.compiledcode .. str
 end
@@ -39,6 +41,11 @@ function VergeC.compile(this)
     
     this.ast = this:cleanNode(this.ast)
     this:compileNode(this.ast)
+    
+    print("TYPEDEFS")
+    for k,v in pairs(VergeC.typedefs) do
+        print("  " .. k)
+    end
 end
 
 function VergeC.findVarInScope(this, varname)
@@ -78,10 +85,21 @@ function VergeC.compileNode(this, node)
         if this.scope[scope][node[2]] then
             VergeC.error("COMPILE ERROR\n  Redeclaration of variable '" .. node.name .. "'", node.index)
         else
-            if name[2] ~= 'globalvar' then this:emit("local ") else this:emit("VergeC.bin.") end
+            if name[2] == 'globalvar' then this:emit("VergeC.bin.") elseif name[2] == 'membervar' then this:emit("") else this:emit("local ") end
             this:emit(node[2].value .. " = ")
             
-            local scopeentry = { type = node[1].token_type, ident = node[2].value }
+            local scopeentry = {}
+            
+            if node[1].token_type == 'IDENT' then
+                if VergeC.typedefs[node[1].value] then
+                    scopeentry = { type = node[1].value, ident = node[2].value }
+                else
+                    VergeC.error("COMPILE ERROR\n  Unknown type '" .. node[1].value .. "' in declaration.")
+                end
+            else
+                scopeentry = { type = node[1].token_type, ident = node[2].value }
+            end
+            
             if node[3].type == 'SEQ' then -- this means we have an array decl
                 scopeentry.type = scopeentry.type .. "_ARRAY"
                 if node[3][1].type ~= 'EMPTY' then
@@ -93,7 +111,7 @@ function VergeC.compileNode(this, node)
             if node[4] then
                 this:compileNode(node[4])
             else
-                if scopeentry.type == 'TY_INT_ARRAY' or scopeentry.type == 'TY_FLOAT_ARRAY' or scopeentry.type == 'TY_STRING_ARRAY' then
+                if string.sub(scopeentry.type, -6) == '_ARRAY' then
                     this:emit('{')
                     if scopeentry.size then
                         local first = true
@@ -103,6 +121,8 @@ function VergeC.compileNode(this, node)
                                 this:emit('0')
                             elseif scopeentry.type == 'TY_STRING_ARRAY' then
                                 this:emit('""')
+                            else
+                                this:compileNode(VergeC.typedefs[string.sub(scopeentry.type, 1, -7)])
                             end
                         end
                     end
@@ -111,6 +131,8 @@ function VergeC.compileNode(this, node)
                     this:emit('0')
                 elseif scopeentry.type == 'TY_STRING' then
                     this:emit('""')
+                else
+                    this:compileNode(VergeC.typedefs[scopeentry.type])
                 end
             end
             
@@ -162,6 +184,19 @@ function VergeC.compileNode(this, node)
             -- pop off this function's scope
             table.remove(this.scope)
         end
+    
+    elseif name[1] == 'StructDecl' then
+        VergeC.typedefs[node[1].value] = node
+        node.name = 'Struct'   -- later we'll want this to be a Struct, not a StructDecl (see below)
+        
+    elseif name[1] == 'Struct' then
+        this:emit('{')
+        for i,v in ipairs(node[2]) do
+            v.type = v.type .. '/membervar'
+            this:compileNode(v)
+            this:emit(";")
+        end
+        this:emit('}')
     
     elseif name[1] == 'IfStatement' then
         this:emit("if VergeC.runtime.truth(")
@@ -310,11 +345,18 @@ function VergeC.compileNode(this, node)
         end
     
     elseif name[1] == 'value' and #node > 1 then
-        this:compileNode(node[1])
-        if #node > 1 then
-            this:emit('[1 + ')
-            this:compileNode(node[2])
-            this:emit(']')
+        for i,v in ipairs(node) do
+            if i > 1 then
+                if v.token_type == 'IDENT' then
+                    this:emit('.' .. v.value)
+                else
+                    this:emit('[1 + ')
+                    this:compileNode(v)
+                    this:emit(']')
+                end
+            else
+                this:compileNode(v)
+            end
         end
     
     -- then deal with generic types

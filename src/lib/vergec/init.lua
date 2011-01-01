@@ -99,7 +99,7 @@ function VergeC.loadfile(filename)
         module:error("PARSING ERROR")
     end
 
-    --VergeC.printAST(module.ast)
+    VergeC.printAST(module.ast)
     
     print("VERGEC: Compiling " .. filename .. "...")
     module:compile()
@@ -160,7 +160,11 @@ function VergeC.outputCode(this, linenums)
             linenum = linenum + 1
             linestart = lineend + 1
             lineend = string.find(this.compiledcode, "\n", linestart, true)
-            if not lineend then break end
+            
+            if not lineend then
+                print(" " .. linenum .. "." .. "\t" .. string.sub(this.compiledcode, linestart))
+                break
+            end
             
             ln = string.sub(this.compiledcode, linestart, lineend - 1)
         end

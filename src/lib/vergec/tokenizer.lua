@@ -2,8 +2,8 @@
 -- Define possible tokens
 VergeC.tokens = {
     {'OP_EQ','=='}, {'OP_NE','!='},{'OP_ASSIGN','='},
-    {'OP_LTE','<='},{'OP_GTE','>='},{'OP_LTE', '<='},{'OP_GTE','>='},{'OP_LT', '<'},{'OP_GT','>'},
     {'OP_AND','%&%&'},{'OP_OR','%|%|'},{'OP_BSL','<<'},{'OP_BSR','>>'},
+    {'OP_LTE','<='},{'OP_GTE','>='},{'OP_LTE', '<='},{'OP_GTE','>='},{'OP_LT', '<'},{'OP_GT','>'},
     {'OP_NOT','!'}, {'OP_INCREMENT', '%+%+'}, {'OP_DECREMENT', '%-%-'},
     {'OP_ADD','%+'}, {'OP_SUB','%-'}, {'OP_MLT','%*'}, {'OP_DIV','%/'},
     {'KEY_IF', 'if'},{'KEY_WHILE', 'while'},{'KEY_FOR', 'for'},{'KEY_RETURN', 'return'},{'KEY_STRUCT', 'struct'},

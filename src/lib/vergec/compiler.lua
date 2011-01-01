@@ -46,16 +46,23 @@ function VergeC.compile(this)
 end
 
 function VergeC.findVarInScope(this, varname)
+    local refstr = varname
+
     level = #this.scope
     
     while level > 0 do
         if this.scope[level][varname] then
-            return this.scope[level][varname], level
+            if level == 1 then refstr = 'VergeC.bin.' .. refstr end
+            return this.scope[level][varname], level, refstr
         end
         level = level - 1
     end
     
-    return nil, level
+    if v3[varname] then
+        return true, 0, "v3." .. varname
+    end
+    
+    return nil
 end
 
 function VergeC.cleanNode(this, node)
@@ -243,8 +250,24 @@ function VergeC.compileNode(this, node)
     elseif name[1] == 'FuncCall' then
         local funcname = node[1].value
         
-        if VergeC.runtime.libfunc[funcname] then
-            VergeC.runtime.libfunc[funcname](this, unpack(node[2]))
+        if VergeC.runtime.lib[funcname] then
+            this:emit('VergeC.runtime.lib.' .. funcname .. '(')
+            if node[2] then
+                for i,v in ipairs(node[2]) do
+                    if i > 1 then this:emit(", ") end
+                    this:compileNode(v)
+                end
+            end
+            this:emit(")")
+        elseif v3[funcname] then
+            this:emit("v3." .. funcname .. "(")
+            if node[2] then
+                for i,v in ipairs(node[2]) do
+                    if i > 1 then this:emit(", ") end
+                    this:compileNode(v)
+                end
+            end
+            this:emit(")")
         else
             local first = true
             this:emit('VergeC.bin.' .. funcname .. '(')
@@ -259,7 +282,7 @@ function VergeC.compileNode(this, node)
         this:emit('do return ') -- wrap return in do ... end so we can return in the middle of a function
         this:compileNode(node[1])
         this:emit(' end')
-
+        
     elseif name[1] == 'binop' then
         local opstep = false
         local assign = false
@@ -379,10 +402,9 @@ function VergeC.compileNode(this, node)
             this:emit('do break end')
         elseif node.token_type == 'IDENT' then
             local found, scopelevel
-            found, scopelevel = VergeC.findVarInScope(this, node.value)
+            found, scopelevel, refstr = VergeC.findVarInScope(this, node.value)
             if found then
-                if level == 1 then this:emit("VergeC.bin.") end
-                this:emit(node.value)
+                this:emit(refstr)
             else
                 this:error("COMPILE ERROR\n  Unknown variable '" .. node.value .. "'.", node.index)
             end

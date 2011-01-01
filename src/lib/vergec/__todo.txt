@@ -1,0 +1,6 @@
+VClua TODO:
+ - bitwise operators (booleans) 
+ - v3 library exposure (generic handling should work for a lot of things, need to go through and make sure that everything works)
+ - string concatenation (will need to write an inspector that figures out the type of an AST node)
+ - #define at end of line (currently fails if no character follows it on the line)
+ 

@@ -1,8 +1,12 @@
-#include "inc.vc"
-
-#define A_CON 1
-#define A_CONSTANT 5
+//#include "inc.vc"
+//
+//#define A_CON 1
+//#define A_CONSTANT 5
+//
 
 void autoexec() {
-    log(add(A_CONSTANT, 2));
+    int a = 5;
+    log(a << 1);
+    //log(add(A_CONSTANT, 2));
+    //log(dbl(A_CON));
 }

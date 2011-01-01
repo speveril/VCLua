@@ -9,11 +9,13 @@ VergeC.runtime.op = {
     OP_GTE = function(a,b) if a >= b then return 1 else return 0 end end,
     OP_AND = function(a,b) if VergeC.runtime.truth(a) and VergeC.runtime.truth(b) then return true else return false end end, 
     OP_OR = function(a,b) if VergeC.runtime.truth(a) or VergeC.runtime.truth(b) then return true else return false end end,
-    OP_NOT = function(a) if VergeC.runtime.truth(a) then return 0 else return 1 end end
+    OP_NOT = function(a) if VergeC.runtime.truth(a) then return 0 else return 1 end end,
+    OP_BSL = function(a,b) return a * (2 ^ b) end,
+    OP_BSR = function(a,b) return Math.floor(a / (2 ^ b)) end
 }
 
-VergeC.runtime.libfunc = {
-    log = function(this, str) this:emit('v3.log(') this:compileNode(str) this:emit(')') end,
+VergeC.runtime.lib = {
+    -- fill with library funcs that need special handling
 }
 
 VergeC.runtime.truth = function(a)

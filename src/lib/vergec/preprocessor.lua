@@ -22,7 +22,9 @@ function VergeC.preprocess(this, ln, i)
         local k,v
         
         for k,v in pairs(VergeC.defines) do
-            if v then ln = string.gsub(ln, k .. "([^_%w%d])", v .. "%1") end
+            if v then
+                ln = string.gsub(ln, k .. "([^_%w%d])", v .. "%1")
+            end
         end
     end
     

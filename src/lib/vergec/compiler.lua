@@ -35,17 +35,14 @@ function VergeC.search(this, nodetype, start)
 end
 
 function VergeC.compile(this)
-    print("COMPILE STEP")
+    if not VergeC.scope then
+        VergeC.scope = { {} }
+    end
     
-    this.scope = { {} } -- scope[1] is global scope, which we always have
+    this.scope = VergeC.scope
     
     this.ast = this:cleanNode(this.ast)
     this:compileNode(this.ast)
-    
-    print("TYPEDEFS")
-    for k,v in pairs(VergeC.typedefs) do
-        print("  " .. k)
-    end
 end
 
 function VergeC.findVarInScope(this, varname)
@@ -83,7 +80,7 @@ function VergeC.compileNode(this, node)
         local scope = #this.scope
         
         if this.scope[scope][node[2]] then
-            VergeC.error("COMPILE ERROR\n  Redeclaration of variable '" .. node.name .. "'", node.index)
+            this:error("COMPILE ERROR\n  Redeclaration of variable '" .. node.name .. "'", node.index)
         else
             if name[2] == 'globalvar' then this:emit("VergeC.bin.") elseif name[2] == 'membervar' then this:emit("") else this:emit("local ") end
             this:emit(node[2].value .. " = ")
@@ -94,7 +91,7 @@ function VergeC.compileNode(this, node)
                 if VergeC.typedefs[node[1].value] then
                     scopeentry = { type = node[1].value, ident = node[2].value }
                 else
-                    VergeC.error("COMPILE ERROR\n  Unknown type '" .. node[1].value .. "' in declaration.")
+                    this:error("COMPILE ERROR\n  Unknown type '" .. node[1].value .. "' in declaration.", node.index)
                 end
             else
                 scopeentry = { type = node[1].token_type, ident = node[2].value }
@@ -145,6 +142,8 @@ function VergeC.compileNode(this, node)
             -- create new scope level
             local localscope = {}
             local params = {}
+            
+            table.insert(this.scope[1], { type = node[1].value, ident = node[2].value })
             table.insert(this.scope, localscope)
             
             -- build function head and signature
@@ -385,7 +384,7 @@ function VergeC.compileNode(this, node)
                 if level == 1 then this:emit("VergeC.bin.") end
                 this:emit(node.value)
             else
-                VergeC.error("COMPILE ERROR\n  Unknown variable '" .. node.value .. "'.", node.index)
+                this:error("COMPILE ERROR\n  Unknown variable '" .. node.value .. "'.", node.index)
             end
         end
     

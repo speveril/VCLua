@@ -64,7 +64,7 @@ VergeC.parsing_expressions = {
 
     -- expression order of operations chain
     --  ordered from binds most-tightly to least-tightly
-    Value = named('value',choice(
+    Value = choice(
         parsex('FuncCall'),
         collapse(seq(
             token('IDENT'),
@@ -74,7 +74,7 @@ VergeC.parsing_expressions = {
         token('NUMBER'),
         token('STRING'),
         seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE'))
-    )),
+    ),
     PostfixOp = choice(named('postop', collapse(seq(parsex('Value'), choice(token('OP_INCREMENT'), token('OP_DECREMENT'))))), collapse(parsex('Value'))),
     PrefixOp = choice(named('preop', collapse(seq(choice(token('OP_NOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp')))), collapse(parsex('PostfixOp'))),
     Product = choice(collapse(named('binop', seq(parsex('PrefixOp'), collapse(one_or_more(collapse(seq(choice(token('OP_MLT'), token('OP_DIV')), parsex('PrefixOp')))))))), collapse(parsex('PrefixOp'))),
@@ -94,20 +94,30 @@ for k,v in pairs(VergeC.parsing_expressions) do if not VergeC.parsing_expression
 function VergeC.parse(this, what)
     local rootex = false
 
-    if not what then what = VergeC.default_parsing_expression end
+    if not what then
+        what = VergeC.default_parsing_expression
+        this.packrat = {}
+    end
     
     if type(what) == 'string' then
         what = VergeC.parsing_expressions[what]
         rootex = true
     end
-
+    
     local startindex = this.index
     local type = what.type
     
+    if rootex then
+        local pack = this.packrat[startindex .. ":" .. what.name]
+        if pack then
+            this.index = pack.index
+            return pack.node, pack.parsed
+        end
+    end
+    
     local node = { name=what.name, collapse=what.collapse, type=what.type }
     local parsed = false
-    
-    --if what.name then print("  Parsing type: ", what.name, type) end
+    local child = nil
     
     if type == 'DEBUG_PRINT' then
         print(what.s)
@@ -244,6 +254,12 @@ function VergeC.parse(this, what)
     
     if what.ignore then node = nil end
     if node then node.index = this.index end
+    
+    if what == VergeC.default_parsing_expression then
+        this.packrat = nil
+    elseif rootex then
+        this.packrat[startindex .. ":" .. what.name] = { node=node, parsed=parsed, index=this.index }
+    end
     
     if not parsed then
         this.index = startindex

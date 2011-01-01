@@ -1,7 +1,6 @@
-
 -- Lexing functions
 -- Define possible tokens
-tokens = {
+VergeC.tokens = {
     {'OP_EQ','=='}, {'OP_NE','!='},{'OP_ASSIGN','='},
     {'OP_LTE','<='},{'OP_GTE','>='},{'OP_LTE', '<='},{'OP_GTE','>='},{'OP_LT', '<'},{'OP_GT','>'},
     {'OP_AND','%&%&'},{'OP_OR','%|%|'},{'OP_BSL','<<'},{'OP_BSR','>>'},
@@ -24,7 +23,7 @@ function VergeC.peek(this)
     local index = this.index
     local codelen = string.len(code)
 
-    for x,p in ipairs(tokens) do
+    for x,p in ipairs(VergeC.tokens) do
         local m = string.match(code, '^'..p[2], index)
         if m then
             if p[1] == 'STRING' then
@@ -73,7 +72,7 @@ function VergeC.peek(this)
             return p[1], m, index
         end
     end
-
+    
     return nil, nil, index
 end
 
@@ -82,12 +81,11 @@ function VergeC.consume(this, index)
     this.index = index
     
     -- skip whitespace and comments
-    local m = true -- just stuff this with a not-false value so the loop executes at least once
-    while m do
-        m = string.match(this.code, "^%s+", this.index) or string.match(this.code, "^//.-\n", this.index) or string.match(this.code, "^/%*.-%*/", this.index)
+    repeat
+        local m = string.match(this.code, "^%s+", this.index) or string.match(this.code, "^//.-\n", this.index) or string.match(this.code, "^/%*.-%*/", this.index)
         --print("Consuming whitespace <" .. tostring(m) .. ">")
         if m then this.index = this.index + string.len(m) end
-    end
+    until not m
     
     if this.index > this.furthestindex then this.furthestindex = this.index end
 end

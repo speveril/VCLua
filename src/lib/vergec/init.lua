@@ -2,6 +2,8 @@
 VergeC = {}
 
 VergeC.bin = {}
+VergeC.modules = {}
+VergeC.defines = {}
 
 require('vergec.preprocessor')
 require('vergec.tokenizer')
@@ -17,6 +19,8 @@ function VergeC.newModule()
     m.code = ''
     m.ast = {}
     m.compiledcode = ''
+    
+    m.error = VergeC.error
     
     m.addLine = VergeC.addLine
     m.preprocess = VergeC.preprocess
@@ -40,10 +44,10 @@ function VergeC.call(func, args)
 end
 
 function VergeC.addLine(this, ln)
-    this.code = this.code .. ln .. "\n"
+    this.code = this.code .. this:preprocess(ln, string.len(this.code)) .. "\n"
 end
 
-function VergeC.error(msg, index)
+function VergeC.error(module, msg, index)
     if not index then index = module.furthestindex end
     local c = module.code
     local lineno = 1
@@ -65,7 +69,7 @@ function VergeC.error(msg, index)
     
     ln = string.gsub(ln, "\t", "    ")
     
-    msg = "** VERGEC " .. msg .."\nNear line " .. lineno .. ", column " .. col .. ":\n" .. ln .. "\n" .. string.rep(" ", col-1) .. "^"
+    msg = "** VERGEC " .. msg .."\nIn " .. module.filename .. " near line " .. lineno .. ", column " .. col .. ":\n" .. ln .. "\n" .. string.rep(" ", col-1) .. "^"
     v3.exit(msg)
 end
 
@@ -73,33 +77,39 @@ end
 function VergeC.loadfile(filename)
     print("VERGEC: Loading file '"..filename.."'")
 
-    module = VergeC.newModule()    
+    local module = VergeC.newModule()
+    module.filename = filename
+    VergeC.modules[filename] = module
+    
     for line in io.lines(filename) do
         module:addLine(line)
     end
     
-    module:preprocess()
     --print(module.code)
     
     local succ
     module:consume(1) -- do this to consume any whitespace or comments at the beginning of the file
+
+    print("VERGEC: Parsing " .. filename .. "...")
     module.ast,succ = module:parse()
     
     if succ and module.furthestindex >  string.len(module.code) then
-        print("VERGEC: Parsing successful!")
+        print("VERGEC: Parsing complete.")
     else
-        VergeC.error("PARSING ERROR")
+        module:error("PARSING ERROR")
     end
 
-    VergeC.printAST(module.ast)
+    --VergeC.printAST(module.ast)
     
+    print("VERGEC: Compiling " .. filename .. "...")
     module:compile()
+    print("VERGEC: Compiling complete.")
     module:emit("\n-- done")
     
     print("")
-    print("LUA SOURCE:")
-    
+    print(" LUA SOURCE (" .. filename .. "):")
     module:outputCode(true)
+    print("")
     
     assert(loadstring(module.compiledcode))()
     
@@ -146,7 +156,7 @@ function VergeC.outputCode(this, linenums)
         local codelen = string.len(this.compiledcode)
         
         while lineend < codelen do
-            print(linenum .. "." .. "\t" .. ln)
+            print(" " .. linenum .. "." .. "\t" .. ln)
             linenum = linenum + 1
             linestart = lineend + 1
             lineend = string.find(this.compiledcode, "\n", linestart, true)

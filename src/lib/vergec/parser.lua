@@ -107,6 +107,10 @@ function VergeC.parse(this, what)
     local startindex = this.index
     local type = what.type
     
+    -- packrat parsing usage
+    --  Basically, since we're saving the outcome of a parse at a particular location for a
+    --  particular parsing expression, we can just return it now rather than going and reparsing it.
+    --  This saves us A LOT of work, particularly with Expr and its descendants.
     if rootex then
         local pack = this.packrat[startindex .. ":" .. what.name]
         if pack then
@@ -114,6 +118,7 @@ function VergeC.parse(this, what)
             return pack.node, pack.parsed
         end
     end
+    -- end packrat stuff
     
     local node = { name=what.name, collapse=what.collapse, type=what.type }
     local parsed = false
@@ -255,11 +260,13 @@ function VergeC.parse(this, what)
     if what.ignore then node = nil end
     if node then node.index = this.index end
     
+    -- packrat parsing clean up, and saving
     if what == VergeC.default_parsing_expression then
         this.packrat = nil
     elseif rootex then
         this.packrat[startindex .. ":" .. what.name] = { node=node, parsed=parsed, index=this.index }
     end
+    -- end packrat stuff
     
     if not parsed then
         this.index = startindex

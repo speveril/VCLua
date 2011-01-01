@@ -7,7 +7,7 @@ VergeC.tokens = {
     {'OP_LTE','<='},{'OP_GTE','>='},{'OP_LTE', '<='},{'OP_GTE','>='},{'OP_LT', '<'},{'OP_GT','>'},
     {'OP_AND','%&%&'},{'OP_OR','%|%|'},
     {'OP_BNOT','~'},{'OP_NOT','!'}, {'OP_INCREMENT', '%+%+'}, {'OP_DECREMENT', '%-%-'},
-    {'OP_ADD','%+'}, {'OP_SUB','%-'}, {'OP_MLT','%*'}, {'OP_DIV','%/'},
+    {'OP_ADD','%+'}, {'OP_SUB','%-'}, {'OP_MLT','%*'}, {'OP_DIV','%/'}, {'OP_MOD','%%'},
     {'KEY_IF', 'if'},{'KEY_WHILE', 'while'},{'KEY_FOR', 'for'},{'KEY_RETURN', 'return'},{'KEY_STRUCT', 'struct'},
     {'KEY_BREAK', 'break'}, {'KEY_CONTINUE', 'continue'},
     {'TY_VOID','void'},{'TY_INT','int'},{'TY_STRING','string'},{'TY_FLOAT','float'},

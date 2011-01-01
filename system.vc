@@ -6,14 +6,20 @@
 void autoexec() {
     log(A_CONSTANT);
     
-    int x = 15;
-    int y = 178;
-    log(bitstring(x, 8));
-    log(bitstring(y, 8));
-    log("--------");
-    log(bitstring(~x, 8));
-    log(bitstring(~y, 8));
-    log(bitstring(x&y, 8));
-    log(bitstring(x|y, 8));
-    log(bitstring(x^y, 8));
+    //int x = 15;
+    //int y = 178;
+    //log(bitstring(x, 8));
+    //log(bitstring(y, 8));
+    //log("--------");
+    //log(bitstring(~x, 8));
+    //log(bitstring(~y, 8));
+    //log(bitstring(x&y, 8));
+    //log(bitstring(x|y, 8));
+    //log(bitstring(x^y, 8));
+    
+    int x = -5;
+    log(x);
+    
+    int y = 10 % 3;
+    log(y);
 }

@@ -387,7 +387,7 @@ function VergeC.compileNode(this, node)
     
     elseif node.type == 'TOKEN' then
         if node.token_type == 'NUMBER'
-            or node.token_type == 'OP_ADD' or node.token_type == 'OP_SUB' or node.token_type == 'OP_MLT' or node.token_type == 'OP_DIV'
+            or node.token_type == 'OP_ADD' or node.token_type == 'OP_SUB' or node.token_type == 'OP_MLT' or node.token_type == 'OP_DIV' or node.token_type == 'OP_MOD'
             or node.token_type == 'OP_ASSIGN' or node.token_type == 'OP_EQ'
             or node.token_type == 'OP_GT' or node.token_type == 'OP_LT' or node.token_type == 'OP_GTE' or node.token_type == 'OP_LTE'
         then

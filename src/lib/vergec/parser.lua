@@ -76,8 +76,8 @@ VergeC.parsing_expressions = {
         seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE'))
     ),
     PostfixOp = choice(named('postop', collapse(seq(parsex('Value'), choice(token('OP_INCREMENT'), token('OP_DECREMENT'))))), collapse(parsex('Value'))),
-    PrefixOp = choice(named('preop', collapse(seq(choice(token('OP_NOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp')))), collapse(parsex('PostfixOp'))),
-    BitOp = choice(collapse(named('binop', seq(parsex('PrefixOp'), collapse(one_or_more(collapse(seq(choice(token('OP_BSL'), token('OP_BSR')), parsex('PrefixOp')))))))), collapse(parsex('PrefixOp'))),
+    PrefixOp = choice(named('preop', collapse(seq(choice(token('OP_NOT'), token('OP_BNOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp')))), collapse(parsex('PostfixOp'))),
+    BitOp = choice(collapse(named('binop', seq(parsex('PrefixOp'), collapse(one_or_more(collapse(seq(choice(token('OP_BSL'), token('OP_BSR'),token('OP_BAND'),token('OP_BOR'),token('OP_BXOR')), parsex('PrefixOp')))))))), collapse(parsex('PrefixOp'))),
     Product = choice(collapse(named('binop', seq(parsex('BitOp'), collapse(one_or_more(collapse(seq(choice(token('OP_MLT'), token('OP_DIV')), parsex('BitOp')))))))), collapse(parsex('BitOp'))),
     Sum = choice(collapse(named('binop', seq(parsex('Product'), collapse(one_or_more(collapse(seq(choice(token('OP_ADD'), token('OP_SUB')), parsex('Product')))))))), collapse(parsex('Product'))),
     Comparison = choice(collapse(named('binop', seq(parsex('Sum'), collapse(one_or_more(collapse(seq(choice(token('OP_EQ'), token('OP_NE'), token('OP_LTE'), token('OP_GTE'), token('OP_LT'), token('OP_GT')), parsex('Sum')))))))), collapse(parsex('Sum'))),

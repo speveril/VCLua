@@ -5,6 +5,7 @@ VergeC.bin = {}
 VergeC.modules = {}
 VergeC.defines = {}
 
+require('vergec.bit') -- bitfield library by han zhao; see http://luaforge.net/projects/bit/
 require('vergec.preprocessor')
 require('vergec.tokenizer')
 require('vergec.parser')

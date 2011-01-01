@@ -1,12 +1,19 @@
-//#include "inc.vc"
-//
-//#define A_CON 1
-//#define A_CONSTANT 5
-//
+#include "inc.vc"
+
+#define A_CON 3
+#define A_CONSTANT 5
 
 void autoexec() {
-    int a = 5;
-    log(a << 1);
-    //log(add(A_CONSTANT, 2));
-    //log(dbl(A_CON));
+    log(A_CONSTANT);
+    
+    int x = 15;
+    int y = 178;
+    log(bitstring(x, 8));
+    log(bitstring(y, 8));
+    log("--------");
+    log(bitstring(~x, 8));
+    log(bitstring(~y, 8));
+    log(bitstring(x&y, 8));
+    log(bitstring(x|y, 8));
+    log(bitstring(x^y, 8));
 }

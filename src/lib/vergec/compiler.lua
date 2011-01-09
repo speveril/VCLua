@@ -11,14 +11,15 @@ function string.split(str, div)
 end
 
 VergeC.typedefs = {}
-VergeC.compatibleOperators = { -- it is assumed that an operator is compatible with itself
-    OP_GT={OP_GTE}, OP_GTE={OP_GT},
-    OP_LT={OP_LTE}, OP_LTE={OP_LT},
-    OP_ADD={OP_SUB}, OP_SUB={OP_ADD},
-    OP_MLT={OP_DIV,OP_MOD},OP_DIV={OP_MLT,OP_MOD},OP_MOD={OP_MLT,OP_DIV},
-
-    OP_CONCAT={OP_ADD} -- not really, but the add will get converted if we're looking at a CONCAT
+VergeC.compatibleOperators = {       -- it is assumed that an operator is compatible with itself
+    OP_GT={'OP_GTE'}, OP_GTE={'OP_GT'},
+    OP_LT={'OP_LTE'}, OP_LTE={'OP_LT'},
+    OP_ADD={'OP_SUB'}, OP_SUB={'OP_ADD'},
+    OP_MLT={'OP_DIV','OP_MOD'},OP_DIV={'OP_MLT','OP_MOD'},OP_MOD={'OP_MLT','OP_DIV'},
+    OP_CONCAT={'OP_ADD'} -- not really, but the add will get converted if we're looking at a CONCAT
 }
+
+print("### " .. VergeC.compatibleOperators['OP_CONCAT'][1])
 
 function VergeC.emit(this, str)
     this.compiledcode = this.compiledcode .. str
@@ -258,7 +259,7 @@ function VergeC.compileNode(this, node)
         this:compileNode(node[1])
         this:emit(") then \n")
         this:compileNode(node[2])
-        for i = 3, #node do
+        for i = 3,#node do
             if node[i].name == 'elseif' then
                 this:emit("elseif VergeC.runtime.truth(")
                 this:compileNode(node[i][1])
@@ -347,7 +348,7 @@ function VergeC.compileNode(this, node)
         local operands = {}
         local childcount = #node
         local vartype = this:getVarType(node)
-                
+        
         if childcount == 3 then
             local lhs = node[1]
             local op = node[2].token_type
@@ -357,14 +358,13 @@ function VergeC.compileNode(this, node)
             -- special case ops; in these cases we can't just let Lua do its default thing because
             -- VergeC has a different idea of how things work
             if VergeC.runtime.op[op] then
-                this:emit('VergeC.runtime.op.' .. op .. '(') this:compileNode(lhs) this:emit(', ') this:compileNode(rhs) this:emit(')')
+                this:emit('VergeC.runtime.op.' .. op .. '(') this:compileNode(lhs) this:emit(', ') this:emit(op) this:emit(', ') this:compileNode(rhs) this:emit(')')
             elseif op == 'OP_ASSIGN' then
                 this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
             else
                 this:emit('(') this:compileNode(lhs) this:emit(') ') this:compileNode(node[2]) this:emit(' (') this:compileNode(rhs) this:emit(') ')
             end
         else
-            this:emit('(function(...) local args={...}; return ')
             local opstep = false
             local lhs = null
             local op = null
@@ -375,35 +375,42 @@ function VergeC.compileNode(this, node)
                 local op = node[i].token_type
                 local rhs = node[i + 1]
                 
-                if vartype == 'string' and op == 'OP_ADD' then node[2].token_type = 'OP_CONCAT'; op = node[2].token_type end
+                if vartype == 'string' and op == 'OP_ADD' then node[i].token_type = 'OP_CONCAT'; op = node[i].token_type end
+                
+                if i == 2 and VergeC.runtime.op[op] then
+                    this:emit('VergeC.runtime.op.' .. op .. '(')
+                end
                 
                 -- do operator compatibility checks
                 if node[i + 2] and op ~= node[i + 2].token_type then
-                    local compats = VergeC.compatibleOperators[op]
-                    local ii,vv
                     local fail = true
-                    for ii,vv in ipairs(compats) do
+                    local ii,vv
+                    for ii,vv in ipairs(VergeC.compatibleOperators[op]) do
                         if node[i + 2].token_type == vv then fail = false; break end
                     end
+                    
+                    print(fail)
+                    
                     if fail then
-                        this:error("COMPILE ERROR:\n Incompatible operators (" .. v.token_type .. " vs " .. node[i + 2].token_type .. ").", v.index)
+                        this:error("COMPILE ERROR:\n Incompatible operators.", node[i].index)
                     end
                 end
                 
+                if VergeC.runtime.op[op] then
+                    this:compileNode(lhs) this:emit(', "') this:emit(op) this:emit('", ')
+                elseif op == 'OP_ASSIGN' then
+                    this:compileNode(lhs) this:emit(' = ')
+                else
+                    this:emit('(') this:compileNode(lhs) this:emit(') ') this:compileNode(node[i]) this:emit(" ")
+                end
+                
+                if i == childcount - 1 then
+                    if not VergeC.runtime.op[op] then this:emit("(") end
+                    this:compileNode(rhs)
+                    this:emit(')')
+                end
                 
             end
-            
-        
-
-            --for i,v in ipairs(node) do
-            --    if not opstep and node[i+1] and node[i+1].token_type == 'OP_ASSIGN' then assign = true end
-            --    
-            --    if not assign and not opstep then this:emit("(") end
-            --    this:compileNode(v)
-            --    if not assign and not opstep then this:emit(") ") else this:emit(" ") end
-            --    assign = false
-            --    opstep = not opstep
-            --end
         end
     
     elseif name[1] == 'preop' then

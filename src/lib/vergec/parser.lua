@@ -54,7 +54,7 @@ VergeC.parsing_expressions = {
     
     IfStatement = seq(
         ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement'))),
-        named('elseif', zero_or_more(collapse(seq(ignore(token('KEY_ELSE')), ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement'))))))),
+        collapse(zero_or_more(named('elseif', seq(ignore(token('KEY_ELSE')), ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement'))))))),
         named('else',optional(seq(collapse(seq(ignore(token('KEY_ELSE')), named('inner',choice(parsex('Block'), parsex('Statement'))))))))
     ),
     WhileStatement = seq(ignore(token('KEY_WHILE')), ignore(token('PAREN_OPEN')), collapse(parsex('Expr')), ignore(token('PAREN_CLOSE')), collapse(choice(parsex('Block'), parsex('Statement')))),

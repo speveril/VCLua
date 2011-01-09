@@ -1,18 +1,19 @@
 void autoexec() {
-    log("blart" + 4); //"foo");
-    //log("blart" + 4 + "foo");
+    log("blart" + (4+1+2) + "foo");
     
-    int a = 9;
-    int b = 5;
-    int c = 7;
+    int a = 5;
+    int b = 7;
+    int c = 2;
     
-    //log(a + b + c);
+    log(a + b + c);
     
-    if ( a < b) {
+    if ( a < b < c) {
         log("asc");
-    } else if ( a > b ) {
+    } else if ( a > b > c) {
         log("desc");
-    } else {
+    } else if ( a == b == c ) {
         log("eq");
+    } else {
+        log("not sorted");
     }
 }

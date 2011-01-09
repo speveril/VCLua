@@ -1,11 +1,5 @@
 void autoexec() {
-    int x = 0;
+    int x = 1;
     
-    switch (x) {
-        case 0: log("Zero!");
-        case 1: log("One.");
-        case 2: log("Two.");
-        case 3: log("Three...");
-        default: log("More than three!");
-    }
+    unless (x) log("HELLOOOOOO");
 }

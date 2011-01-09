@@ -279,6 +279,13 @@ function VergeC.compileNode(this, node)
         end
         this:emit("end")
         
+    elseif name[1] == 'UnlessStatement' then
+        this:emit("if not VergeC.runtime.truth(")
+        this:compileNode(node[1])
+        this:emit(") then \n")
+        this:compileNode(node[2])
+        this:emit("end")
+      
     elseif name[1] == 'SwitchStatement' then
         local tmp = VergeC.getTempName()
         this:emit(tmp.." = ") this:compileNode(node[1]) this:emit(";\n")

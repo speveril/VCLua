@@ -58,9 +58,9 @@ function VergeC.compile(this)
     this.scope = VergeC.scope
     this.ast = this:cleanNode(this.ast)
     
+    this:compileNode(this.ast)
     VergeC.printAST(this.ast)
     
-    this:compileNode(this.ast)
 end
 
 function VergeC.findVarInScope(this, varname)
@@ -108,7 +108,7 @@ function VergeC.getVarType(this, node)
         elseif node.token_type == 'IDENT' then
             local var = VergeC.findVarInScope(this, node.value)
             if var then
-                node.vartype = var.type
+                node.vartype = VergeC.typeToString(var.type)
             else
                 this:error("Can't find var '" .. node.value .. "' in scope.")
             end
@@ -173,7 +173,7 @@ function VergeC.compileNode(this, node)
                 end
                 this.scope[#this.scope][decl[1].value] = scopeentry
                 
-                if node[4] then
+                if decl[3] then
                     this:compileNode(decl[3])
                 else
                     if string.sub(scopeentry.type, -6) == '_ARRAY' then
@@ -394,7 +394,8 @@ function VergeC.compileNode(this, node)
             local op = node[2].token_type
             local rhs = node[3]
             if vartype == 'string' and op == 'OP_ADD' then node[2].token_type = 'OP_CONCAT'; op = node[2].token_type end
-            
+            if vartype == 'int' and op ~= 'OP_ASSIGN' then this:emit('math.floor(') end
+                        
             -- special case ops; in these cases we can't just let Lua do its default thing because
             -- VergeC has a different idea of how things work
             if VergeC.runtime.op[op] then
@@ -404,12 +405,15 @@ function VergeC.compileNode(this, node)
             else
                 this:emit('(') this:compileNode(lhs) this:emit(') ') this:compileNode(node[2]) this:emit(' (') this:compileNode(rhs) this:emit(') ')
             end
+            
+            if vartype == 'int' and op ~= 'OP_ASSIGN'  then this:emit(')') end
         else
             local opstep = false
             local lhs = null
             local op = null
             local rhs = null
             
+            if vartype == 'int' and op ~= 'OP_ASSIGN'  then this:emit('math.floor(') end
             for i = 2,childcount,2 do
                 local lhs = node[i - 1]
                 local op = node[i].token_type
@@ -448,6 +452,7 @@ function VergeC.compileNode(this, node)
                 end
                 
             end
+            if vartype == 'int' and op ~= 'OP_ASSIGN'  then this:emit(')') end
         end
     
     elseif name[1] == 'preop' then

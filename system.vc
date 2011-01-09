@@ -1,3 +1,6 @@
 void autoexec() {
-    log(1 / 2);
+    int i = 5;
+    int x = 2;
+    
+    log(x);
 }

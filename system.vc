@@ -1,5 +1,5 @@
 void autoexec() {
-    int x = 1, y = 2;
+    int x = 1, y = 1;
     
     unless (x) log("HELLOOOOOO");
 }

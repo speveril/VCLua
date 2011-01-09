@@ -39,6 +39,21 @@ function not_predicate(...) return { type='NOT', ... } end      -- !e
 local any_type = choice(token('TY_VOID'), token('TY_INT'), token('TY_STRING'), token('TY_FLOAT'), token('IDENT'))
 
 VergeC.parsing_expressions = {
+    Decl = named('decl',seq(
+        named('type',any_type),
+        seq(
+            named('name',token('IDENT')),
+            collapse(choice(seq(ignore(token('BRACKET_OPEN')), choice(token('NUMBER'),empty()), ignore(token('BRACKET_CLOSE'))),empty())),
+            named('initial',optional(seq(ignore(token('OP_ASSIGN')), collapse(parsex('Expr')))))
+        ),
+        zero_or_more(collapse(seq(
+            ignore(token('COMMA')),
+            named('name',token('IDENT')),
+            collapse(choice(seq(ignore(token('BRACKET_OPEN')), choice(token('NUMBER'),empty()), ignore(token('BRACKET_CLOSE'))),empty())),
+            named('initial',optional(seq(ignore(token('OP_ASSIGN')), collapse(parsex('Expr')))))
+        )))
+    )),
+    
     GlobalList = one_or_more(collapse(parsex('GlobalDecl'))),
     GlobalDecl = choice(collapse(named('globalfunc', parsex('FuncDecl'))), seq(collapse(named('globalvar',parsex('StructDecl'))),ignore(token('SEMICOLON'))), seq(collapse(named('globalvar',parsex('Decl'))),ignore(token('SEMICOLON')))),
     
@@ -74,7 +89,6 @@ VergeC.parsing_expressions = {
     FuncCall = seq(token('IDENT'), collapse(parsex('ArgList'))),
     ArgList = seq(ignore(token('PAREN_OPEN')), optional(collapse(seq(parsex('Expr'), collapse(zero_or_more(collapse(seq(ignore(token('COMMA')),parsex('Expr')))))))), ignore(token('PAREN_CLOSE'))),
 
-    Decl = named('decl',seq(named('type',any_type), named('name',token('IDENT')), collapse(choice(seq(ignore(token('BRACKET_OPEN')), choice(token('NUMBER'),empty()), ignore(token('BRACKET_CLOSE'))),empty())),  named('initial',optional(seq(ignore(token('OP_ASSIGN')), collapse(parsex('Expr'))))))),
 
     -- expression order of operations chain
     --  ordered from binds most-tightly to least-tightly

@@ -142,62 +142,67 @@ function VergeC.compileNode(this, node)
     -- first deal with special names
     if name[1] == 'decl' then
         local scope = #this.scope
+        local vartype = node[1].value
         
-        if this.scope[scope][node[2]] then
-            this:error("COMPILE ERROR\n  Redeclaration of variable '" .. node.name .. "'", node.index)
-        else
-            if name[2] == 'globalvar' then this:emit("VergeC.bin.") elseif name[2] == 'membervar' then this:emit("") else this:emit("local ") end
-            this:emit(node[2].value .. " = ")
+        for i = 2,#node do
+            local decl = node[i]
             
-            local scopeentry = {}
-            
-            if node[1].token_type == 'IDENT' then
-                if VergeC.typedefs[node[1].value] then
-                    scopeentry = { type = node[1].value, ident = node[2].value }
+            if this.scope[scope][decl[1]] then
+                this:error("COMPILE ERROR\n  Redeclaration of variable '" .. node.name .. "'", node.index)
+            else
+                if name[2] == 'globalvar' then this:emit("VergeC.bin.") elseif name[2] == 'membervar' then this:emit("") else this:emit("local ") end
+                this:emit(decl[1].value .. " = ")
+                
+                local scopeentry = {}
+                
+                if node[1].token_type == 'IDENT' then
+                    if VergeC.typedefs[node[1].value] then
+                        scopeentry = { type = node[1].value, ident = decl[1].value }
+                    else
+                        this:error("COMPILE ERROR\n  Unknown type '" .. vartype .. "' in declaration.", node.index)
+                    end
                 else
-                    this:error("COMPILE ERROR\n  Unknown type '" .. node[1].value .. "' in declaration.", node.index)
+                    scopeentry = { type = node[1].token_type, ident = decl[1].value }
                 end
-            else
-                scopeentry = { type = node[1].token_type, ident = node[2].value }
-            end
-            
-            if node[3].type == 'SEQ' then -- this means we have an array decl
-                scopeentry.type = scopeentry.type .. "_ARRAY"
-                if node[3][1].type ~= 'EMPTY' then
-                    scopeentry.size = node[3][1].value
+                
+                if decl[2].type == 'SEQ' then -- this means we have an array decl
+                    scopeentry.type = scopeentry.type .. "_ARRAY"
+                    if decl[2][1].type ~= 'EMPTY' then
+                        scopeentry.size = decl[2][1].value
+                    end
                 end
-            end
-            this.scope[#this.scope][node[2].value] = scopeentry
-            
-            if node[4] then
-                this:compileNode(node[4])
-            else
-                if string.sub(scopeentry.type, -6) == '_ARRAY' then
-                    this:emit('{')
-                    if scopeentry.size then
-                        local first = true
-                        for i=1,scopeentry.size do
-                            if first then first = false else this:emit(',') end
-                            if scopeentry.type == 'TY_INT_ARRAY' or scopeentry.type == 'TY_FLOAT_ARRAY' then
-                                this:emit('0')
-                            elseif scopeentry.type == 'TY_STRING_ARRAY' then
-                                this:emit('""')
-                            else
-                                this:compileNode(VergeC.typedefs[string.sub(scopeentry.type, 1, -7)])
+                this.scope[#this.scope][decl[1].value] = scopeentry
+                
+                if node[4] then
+                    this:compileNode(decl[3])
+                else
+                    if string.sub(scopeentry.type, -6) == '_ARRAY' then
+                        this:emit('{')
+                        if scopeentry.size then
+                            local first = true
+                            for i=1,scopeentry.size do
+                                if first then first = false else this:emit(',') end
+                                if scopeentry.type == 'TY_INT_ARRAY' or scopeentry.type == 'TY_FLOAT_ARRAY' then
+                                    this:emit('0')
+                                elseif scopeentry.type == 'TY_STRING_ARRAY' then
+                                    this:emit('""')
+                                else
+                                    this:compileNode(VergeC.typedefs[string.sub(scopeentry.type, 1, -7)])
+                                end
                             end
                         end
+                        this:emit('}')
+                    elseif scopeentry.type == 'TY_INT' or scopeentry.type == 'TY_FLOAT' then
+                        this:emit('0')
+                    elseif scopeentry.type == 'TY_STRING' then
+                        this:emit('""')
+                    else
+                        this:compileNode(VergeC.typedefs[scopeentry.type])
                     end
-                    this:emit('}')
-                elseif scopeentry.type == 'TY_INT' or scopeentry.type == 'TY_FLOAT' then
-                    this:emit('0')
-                elseif scopeentry.type == 'TY_STRING' then
-                    this:emit('""')
-                else
-                    this:compileNode(VergeC.typedefs[scopeentry.type])
                 end
+                
+                if name[2] == 'globalvar' then this:emit(";\n") elseif i ~= #node then this:emit("; ") end
             end
-            
-            if name[2] == 'globalvar' then this:emit(";\n") end
         end
         
     elseif name[1] == 'func' then

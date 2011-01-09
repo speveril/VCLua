@@ -1,5 +1,6 @@
 VClua TODO:
- - string concatenation (will need to write an inspector that figures out the type of an AST node)
+ - chains of bin ops (1 + 2 + 3, a < b < c, etc)
+ - switch statement
+ - multiple declarations in one line
  - v3 library exposure (generic handling should work for a lot of things, need to go through and make sure that everything works)
  - BUG: #define at end of line currently fails
- 

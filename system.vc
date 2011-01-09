@@ -1,25 +1,18 @@
-#include "inc.vc"
-
-#define A_CON 3
-#define A_CONSTANT 5
-
 void autoexec() {
-    log(A_CONSTANT);
+    log("blart" + 4); //"foo");
+    //log("blart" + 4 + "foo");
     
-    //int x = 15;
-    //int y = 178;
-    //log(bitstring(x, 8));
-    //log(bitstring(y, 8));
-    //log("--------");
-    //log(bitstring(~x, 8));
-    //log(bitstring(~y, 8));
-    //log(bitstring(x&y, 8));
-    //log(bitstring(x|y, 8));
-    //log(bitstring(x^y, 8));
+    int a = 9;
+    int b = 5;
+    int c = 7;
     
-    int x = -5;
-    log(x);
+    //log(a + b + c);
     
-    int y = 10 % 3;
-    log(y);
+    if ( a < b) {
+        log("asc");
+    } else if ( a > b ) {
+        log("desc");
+    } else {
+        log("eq");
+    }
 }

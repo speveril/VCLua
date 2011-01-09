@@ -11,6 +11,14 @@ function string.split(str, div)
 end
 
 VergeC.typedefs = {}
+VergeC.compatibleOperators = { -- it is assumed that an operator is compatible with itself
+    OP_GT={OP_GTE}, OP_GTE={OP_GT},
+    OP_LT={OP_LTE}, OP_LTE={OP_LT},
+    OP_ADD={OP_SUB}, OP_SUB={OP_ADD},
+    OP_MLT={OP_DIV,OP_MOD},OP_DIV={OP_MLT,OP_MOD},OP_MOD={OP_MLT,OP_DIV},
+
+    OP_CONCAT={OP_ADD} -- not really, but the add will get converted if we're looking at a CONCAT
+}
 
 function VergeC.emit(this, str)
     this.compiledcode = this.compiledcode .. str
@@ -40,8 +48,10 @@ function VergeC.compile(this)
     end
     
     this.scope = VergeC.scope
-    
     this.ast = this:cleanNode(this.ast)
+    
+    VergeC.printAST(this.ast)
+    
     this:compileNode(this.ast)
 end
 
@@ -63,6 +73,45 @@ function VergeC.findVarInScope(this, varname)
     end
     
     return nil
+end
+
+function VergeC.typeToString(type)
+    if type == 'TY_VOID' then return 'void' end
+    if type == 'TY_INT' then return 'int' end
+    if type == 'TY_STRING' then return 'string' end
+    return 'none'
+end
+
+function VergeC.getVarType(this, node)
+    if not node then return end
+    
+    if node.vartype then return node.vartype end
+
+    node.vartype = 'none'
+    
+    local name = {}
+    if node.name then
+        name = string.split(node.name, '/')
+    end
+    
+    if node.type == 'TOKEN' then
+        if node.token_type == 'STRING' then node.vartype = 'string'
+        elseif node.token_type == 'NUMBER' then node.vartype = 'int'
+        elseif node.token_type == 'IDENT' then
+            local var = VergeC.findVarInScope(this, node.value)
+            if var then
+                node.vartype = var.type
+            else
+                this:error("Can't find var '" .. node.value .. "' in scope.")
+            end
+        end
+    else
+        if name[1] == 'func' then node.vartype = VergeC.typeToString(node[1].token_type)
+        else node.vartype = this:getVarType(node[1])
+        end
+    end
+    
+    return node.vartype 
 end
 
 function VergeC.cleanNode(this, node)
@@ -209,6 +258,17 @@ function VergeC.compileNode(this, node)
         this:compileNode(node[1])
         this:emit(") then \n")
         this:compileNode(node[2])
+        for i = 3, #node do
+            if node[i].name == 'elseif' then
+                this:emit("elseif VergeC.runtime.truth(")
+                this:compileNode(node[i][1])
+                this:emit(") then\n")
+                this:compileNode(node[i][2])
+            else
+                this:emit("else\n")
+                this:compileNode(node[i][1])
+            end
+        end
         this:emit("end")
     
     elseif name[1] == 'WhileStatement' then
@@ -284,16 +344,15 @@ function VergeC.compileNode(this, node)
         this:emit(' end')
         
     elseif name[1] == 'binop' then
-        local opstep = false
-        local assign = false
-        local i = 1
+        local operands = {}
         local childcount = #node
+        local vartype = this:getVarType(node)
                 
-        -- We're not doing chains of binops yet
         if childcount == 3 then
-            local lhs = node[i]
+            local lhs = node[1]
             local op = node[2].token_type
-            local rhs = node[i+2]
+            local rhs = node[3]
+            if vartype == 'string' and op == 'OP_ADD' then node[2].token_type = 'OP_CONCAT'; op = node[2].token_type end
             
             -- special case ops; in these cases we can't just let Lua do its default thing because
             -- VergeC has a different idea of how things work
@@ -305,6 +364,37 @@ function VergeC.compileNode(this, node)
                 this:emit('(') this:compileNode(lhs) this:emit(') ') this:compileNode(node[2]) this:emit(' (') this:compileNode(rhs) this:emit(') ')
             end
         else
+            this:emit('(function(...) local args={...}; return ')
+            local opstep = false
+            local lhs = null
+            local op = null
+            local rhs = null
+            
+            for i = 2,childcount,2 do
+                local lhs = node[i - 1]
+                local op = node[i].token_type
+                local rhs = node[i + 1]
+                
+                if vartype == 'string' and op == 'OP_ADD' then node[2].token_type = 'OP_CONCAT'; op = node[2].token_type end
+                
+                -- do operator compatibility checks
+                if node[i + 2] and op ~= node[i + 2].token_type then
+                    local compats = VergeC.compatibleOperators[op]
+                    local ii,vv
+                    local fail = true
+                    for ii,vv in ipairs(compats) do
+                        if node[i + 2].token_type == vv then fail = false; break end
+                    end
+                    if fail then
+                        this:error("COMPILE ERROR:\n Incompatible operators (" .. v.token_type .. " vs " .. node[i + 2].token_type .. ").", v.index)
+                    end
+                end
+                
+                
+            end
+            
+        
+
             --for i,v in ipairs(node) do
             --    if not opstep and node[i+1] and node[i+1].token_type == 'OP_ASSIGN' then assign = true end
             --    
@@ -392,6 +482,8 @@ function VergeC.compileNode(this, node)
             or node.token_type == 'OP_GT' or node.token_type == 'OP_LT' or node.token_type == 'OP_GTE' or node.token_type == 'OP_LTE'
         then
             this:emit(node.value)
+        elseif node.token_type == 'OP_CONCAT' then
+            this:emit("..")
         elseif node.token_type == 'OP_NE' then
             this:emit("~=")
         elseif node.token_type == 'STRING' then

@@ -34,6 +34,7 @@ function VergeC.newModule()
     m.cleanNode = VergeC.cleanNode
     m.compileNode = VergeC.compileNode
     m.search = VergeC.search
+    m.getVarType = VergeC.getVarType
     
     m.outputCode = VergeC.outputCode
     
@@ -100,7 +101,7 @@ function VergeC.loadfile(filename)
         module:error("PARSING ERROR")
     end
 
-    VergeC.printAST(module.ast)
+    --VergeC.printAST(module.ast)
     
     print("VERGEC: Compiling " .. filename .. "...")
     module:compile()
@@ -136,6 +137,9 @@ function VergeC.printAST(ast, indent, norecurse)
         nodedesc = nodedesc .. "("..ast.type
         if ast.value then nodedesc = nodedesc .. ", " .. ast.value end
         nodedesc = nodedesc .. ")"
+    end
+    if ast.vartype then
+        nodedesc = nodedesc .. "[" .. ast.vartype .. "]"
     end
     print(sp..nodedesc)
 

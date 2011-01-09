@@ -3,12 +3,12 @@
 VergeC.runtime = {}
 
 VergeC.runtime.op = {
-    OP_LT = function(a,b) if a < b then return 1 else return 0 end end,
-    OP_GT = function(a,b) if a > b then return 1 else return 0 end end,
-    OP_LTE = function(a,b) if a <= b then return 1 else return 0 end end,
-    OP_GTE = function(a,b) if a >= b then return 1 else return 0 end end,
-    OP_AND = function(a,b) if VergeC.runtime.truth(a) and VergeC.runtime.truth(b) then return true else return false end end, 
-    OP_OR = function(a,b) if VergeC.runtime.truth(a) or VergeC.runtime.truth(b) then return true else return false end end,
+    OP_LT = function(...) local args={...}; local i,v; for i=2,#args do if not (args[i-1] < args[i]) then return 0 end end; return 1 end,
+    OP_GT = function(...) local args={...}; local i,v; for i=2,#args do if not (args[i-1] > args[i]) then return 0 end end; return 1 end,
+    OP_LTE = function(...) local args={...}; local i,v; for i=2,#args do if not (args[i-1] <= args[i]) then return 0 end end; return 1 end,
+    OP_GTE = function(...) local args={...}; local i,v; for i=2,#args do if not (args[i-1] >= args[i]) then return 0 end end; return 1 end,
+    OP_AND = function(...) if VergeC.runtime.truth(a) and VergeC.runtime.truth(b) then return true else return false end end, 
+    OP_OR = function(...) if VergeC.runtime.truth(a) or VergeC.runtime.truth(b) then return true else return false end end,
     OP_NOT = function(a) if VergeC.runtime.truth(a) then return 0 else return 1 end end,
     OP_BSL = function(a,b) return bit.blshift(a,b) end,
     OP_BSR = function(a,b) return bit.brshift(a,b) end,

@@ -52,7 +52,11 @@ VergeC.parsing_expressions = {
    
     Statement = named('statement',choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), token('KEY_BREAK'), token('KEY_CONTINUE'), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
     
-    IfStatement = seq(ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement')))),
+    IfStatement = seq(
+        ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement'))),
+        named('elseif', zero_or_more(collapse(seq(ignore(token('KEY_ELSE')), ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement'))))))),
+        named('else',optional(seq(collapse(seq(ignore(token('KEY_ELSE')), named('inner',choice(parsex('Block'), parsex('Statement'))))))))
+    ),
     WhileStatement = seq(ignore(token('KEY_WHILE')), ignore(token('PAREN_OPEN')), collapse(parsex('Expr')), ignore(token('PAREN_CLOSE')), collapse(choice(parsex('Block'), parsex('Statement')))),
     ForStatement = seq(ignore(token('KEY_FOR')), ignore(token('PAREN_OPEN')), collapse(choice(parsex('Expr'),parsex('Decl'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
     ReturnStatement = collapse(seq(ignore(token('KEY_RETURN')), named('return',collapse(choice(parsex('Expr'), empty()))))),

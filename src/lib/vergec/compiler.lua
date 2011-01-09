@@ -19,7 +19,14 @@ VergeC.compatibleOperators = {       -- it is assumed that an operator is compat
     OP_CONCAT={'OP_ADD'} -- not really, but the add will get converted if we're looking at a CONCAT
 }
 
-print("### " .. VergeC.compatibleOperators['OP_CONCAT'][1])
+VergeC.temps = {}
+VergeC.tempIndex = 1
+function VergeC.getTempName()
+    local nm = 'VergeC.temps._t'..VergeC.tempIndex
+    VergeC.tempIndex = VergeC.tempIndex + 1
+    return nm
+end
+
 
 function VergeC.emit(this, str)
     this.compiledcode = this.compiledcode .. str
@@ -271,6 +278,27 @@ function VergeC.compileNode(this, node)
             end
         end
         this:emit("end")
+        
+    elseif name[1] == 'SwitchStatement' then
+        local tmp = VergeC.getTempName()
+        this:emit(tmp.." = ") this:compileNode(node[1]) this:emit(";\n")
+        for i = 2,#node do
+            if i == 2 then
+                this:emit("if VergeC.runtime.truth("..tmp.." == ")
+                this:compileNode(node[i][1])
+                this:emit(") then \n")
+                this:compileNode(node[i][2])
+            elseif node[i].name == 'default' then
+                this:emit("else\n")
+                this:compileNode(node[i][1])
+            else
+                this:emit("elseif VergeC.runtime.truth("..tmp.." == ")
+                this:compileNode(node[i][1])
+                this:emit(") then \n")
+                this:compileNode(node[i][2])
+            end
+        end
+        this:emit("end")
     
     elseif name[1] == 'WhileStatement' then
         table.insert(this.scope, {})
@@ -388,9 +416,6 @@ function VergeC.compileNode(this, node)
                     for ii,vv in ipairs(VergeC.compatibleOperators[op]) do
                         if node[i + 2].token_type == vv then fail = false; break end
                     end
-                    
-                    print(fail)
-                    
                     if fail then
                         this:error("COMPILE ERROR:\n Incompatible operators.", node[i].index)
                     end

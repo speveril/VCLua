@@ -50,12 +50,19 @@ VergeC.parsing_expressions = {
     Block = seq(ignore(token('BRACE_OPEN')), named('block',collapse(parsex('StatementList'))), ignore(token('BRACE_CLOSE'))),
     StatementList = collapse(zero_or_more(collapse(parsex('Statement')))),
    
-    Statement = named('statement',choice(parsex('IfStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), token('KEY_BREAK'), token('KEY_CONTINUE'), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
+    Statement = named('statement',choice(parsex('IfStatement'), parsex('SwitchStatement'), parsex('WhileStatement'), parsex('ForStatement'), seq(choice(parsex('FuncCall'), parsex('Decl'), collapse(parsex('Expr')), token('KEY_BREAK'), token('KEY_CONTINUE'), collapse(parsex('ReturnStatement'))), ignore(token('SEMICOLON'))))),
     
     IfStatement = seq(
         ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement'))),
         collapse(zero_or_more(named('elseif', seq(ignore(token('KEY_ELSE')), ignore(token('KEY_IF')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')), named('inner',choice(parsex('Block'), parsex('Statement'))))))),
         named('else',optional(seq(collapse(seq(ignore(token('KEY_ELSE')), named('inner',choice(parsex('Block'), parsex('Statement'))))))))
+    ),
+    SwitchStatement = seq(
+        ignore(token('KEY_SWITCH')), ignore(token('PAREN_OPEN')), named('clause',parsex('Expr')), ignore(token('PAREN_CLOSE')),
+        ignore(token('BRACE_OPEN')),
+        collapse(zero_or_more(named('case',seq(ignore(token('KEY_CASE')), parsex('Expr'), ignore(token('COLON')), parsex('StatementList'))))),
+        named('default',optional(seq(ignore(token('KEY_DEFAULT')), ignore(token('COLON')), parsex('StatementList')))),
+        ignore(token('BRACE_CLOSE'))
     ),
     WhileStatement = seq(ignore(token('KEY_WHILE')), ignore(token('PAREN_OPEN')), collapse(parsex('Expr')), ignore(token('PAREN_CLOSE')), collapse(choice(parsex('Block'), parsex('Statement')))),
     ForStatement = seq(ignore(token('KEY_FOR')), ignore(token('PAREN_OPEN')), collapse(choice(parsex('Expr'),parsex('Decl'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('SEMICOLON')), collapse(choice(parsex('Expr'),empty())), ignore(token('PAREN_CLOSE')), choice(parsex('Block'), parsex('Statement'))),
@@ -158,7 +165,7 @@ function VergeC.parse(this, what)
                 table.insert(node, child)
             end            
         else
-            print("ERROR: Badly formed parsing expression; expression '" .. what[1] .. "' does not exist!")
+            print("ERROR: Badly formed parsing expression; expression '" .. tostring(what[1]) .. "' does not exist!")
         end
     elseif type == 'SEQ' then
         local i,v

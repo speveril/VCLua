@@ -1,20 +1,21 @@
 -- Lexing functions
 -- Define possible tokens
 VergeC.tokens = {
-    {'OP_EQ','=='}, {'OP_NE','!='},{'OP_ASSIGN','='},
+    {'OP_EQ','=='},{'OP_NE','!='},{'OP_ASSIGN','='},
     {'OP_BSL','<<'},{'OP_BSR','>>'},
-    {'OP_BAND', '%&'},{'OP_BOR','%|'},{'OP_BXOR','%^'},
-    {'OP_LTE','<='},{'OP_GTE','>='},{'OP_LTE', '<='},{'OP_GTE','>='},{'OP_LT', '<'},{'OP_GT','>'},
+    {'OP_BAND','%&'},{'OP_BOR','%|'},{'OP_BXOR','%^'},
+    {'OP_LTE','<='},{'OP_GTE','>='},{'OP_LTE','<='},{'OP_GTE','>='},{'OP_LT','<'},{'OP_GT','>'},
     {'OP_AND','%&%&'},{'OP_OR','%|%|'},
-    {'OP_BNOT','~'},{'OP_NOT','!'}, {'OP_INCREMENT', '%+%+'}, {'OP_DECREMENT', '%-%-'},
-    {'OP_ADD','%+'}, {'OP_SUB','%-'}, {'OP_MLT','%*'}, {'OP_DIV','%/'}, {'OP_MOD','%%'},
-    {'KEY_IF', 'if'},{'KEY_ELSE','else'},{'KEY_WHILE', 'while'},{'KEY_FOR', 'for'},{'KEY_RETURN', 'return'},{'KEY_STRUCT', 'struct'},
-    {'KEY_BREAK', 'break'}, {'KEY_CONTINUE', 'continue'},
+    {'OP_BNOT','~'},{'OP_NOT','!'},{'OP_INCREMENT','%+%+'},{'OP_DECREMENT','%-%-'},
+    {'OP_ADD','%+'}, {'OP_SUB','%-'},{'OP_MLT','%*'},{'OP_DIV','%/'},{'OP_MOD','%%'},
+    {'KEY_IF','if'},{'KEY_ELSE','else'},{'KEY_WHILE','while'},{'KEY_FOR','for'},{'KEY_RETURN','return'},{'KEY_STRUCT','struct'},
+    {'KEY_SWITCH','switch'},{'KEY_CASE','case'},{'KEY_DEFAULT','default'},
+    {'KEY_BREAK','break'},{'KEY_CONTINUE','continue'},
     {'TY_VOID','void'},{'TY_INT','int'},{'TY_STRING','string'},{'TY_FLOAT','float'},
     {'BRACE_OPEN','{'},{'BRACE_CLOSE','}'},{'BRACKET_OPEN','%['},{'BRACKET_CLOSE','%]'},{'PAREN_OPEN','%('},{'PAREN_CLOSE','%)'},
-    {'COMMA',','}, {'DOT','%.'},
+    {'COMMA',','},{'DOT','%.'},{'COLON',':'},
     {'NUMBER','%d+'},{'CHAR',"'"},{'STRING','"'}, -- string and character have special handling; see VergeC.peek
-    {'IDENT', '[_%w][_%w%d]*'},{'SEMICOLON',';'}
+    {'IDENT','[_%w][_%w%d]*'},{'SEMICOLON',';'}
     
     -- NUMBER -> %d+(%.%d+)?
 }

@@ -29,7 +29,9 @@ end
 
 
 function VergeC.emit(this, str)
-    this.compiledcode = this.compiledcode .. str
+    if str then
+        this.compiledcode = this.compiledcode .. str
+    end
 end
 
 function VergeC.search(this, nodetype, start)
@@ -57,14 +59,14 @@ function VergeC.compile(this)
     
     this.scope = VergeC.scope
     this.ast = this:cleanNode(this.ast)
-    
-    this:compileNode(this.ast)
+
     VergeC.printAST(this.ast)
     
+    this:compileNode(this.ast)
 end
 
 function VergeC.findVarInScope(this, varname)
-    local refstr = varname
+    local refstr = string.lower(varname)
 
     level = #this.scope
     
@@ -76,8 +78,8 @@ function VergeC.findVarInScope(this, varname)
         level = level - 1
     end
     
-    if v3[varname] then
-        return true, 0, "v3." .. varname
+    if VergeC.runtime.lookupBuiltin(refstr) then
+        return true, 0, "v3." .. refstr
     end
     
     return nil
@@ -107,7 +109,10 @@ function VergeC.getVarType(this, node)
         elseif node.token_type == 'NUMBER' then node.vartype = 'int'
         elseif node.token_type == 'IDENT' then
             local var = VergeC.findVarInScope(this, node.value)
-            if var then
+            if var == true then
+                local exists, vtype = VergeC.runtime.lookupBuiltin(node.value)
+                node.vartype = vtype
+            elseif var then
                 node.vartype = VergeC.typeToString(var.type)
             else
                 this:error("Can't find var '" .. node.value .. "' in scope.")
@@ -217,12 +222,12 @@ function VergeC.compileNode(this, node)
             
             -- build function head and signature
             local first = true
-            this:emit("function VergeC.bin." .. node[2].value .. "(")
+            this:emit("function VergeC.bin." .. string.lower(node[2].value) .. "(")
             for i,v in ipairs(node[3]) do
                 if first then first = false else this:emit(",") end
                 
-                this:emit(v[2].value)
-                table.insert(params, { type = v[1].token_type, ident = v[2].value, size = v[3].value, init = v[4] })
+                this:emit(string.lower(v[2][1].value))
+                table.insert(params, { type = v[1].token_type, ident = string.lower(v[2][1].value), size = v[2][2].value, init = v[2][3] })
             end
             this:emit(")\n")
             
@@ -234,9 +239,9 @@ function VergeC.compileNode(this, node)
                 if v.init then
                     this:compileNode(v.init)
                 else
-                    if node[1].token_type == 'TY_INT' or node[1].token_type == 'TY_FLOAT' then
+                    if v.type == 'TY_INT' or v.type == 'TY_FLOAT' then
                         this:emit('0')
-                    elseif node[1].token_type == 'TY_STRING' then
+                    elseif v.type == 'TY_STRING' then
                         this:emit('""')
                     end
                 end
@@ -349,7 +354,7 @@ function VergeC.compileNode(this, node)
         this:emit(";\n")
     
     elseif name[1] == 'FuncCall' then
-        local funcname = node[1].value
+        local funcname = string.lower(node[1].value)
         
         if VergeC.runtime.lib[funcname] then
             this:emit('VergeC.runtime.lib.' .. funcname .. '(')
@@ -545,7 +550,7 @@ function VergeC.compileNode(this, node)
             local found, scopelevel
             found, scopelevel, refstr = VergeC.findVarInScope(this, node.value)
             if found then
-                this:emit(refstr)
+                this:emit(string.lower(refstr))
             else
                 this:error("COMPILE ERROR\n  Unknown variable '" .. node.value .. "'.", node.index)
             end

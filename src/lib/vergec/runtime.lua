@@ -2,6 +2,21 @@
 
 VergeC.runtime = {}
 
+VergeC.runtime.availableBuiltins = {
+    b1='int', b2='int', b3='int', b4='int',
+    curmap={startx='int',starty='int'}
+}
+
+VergeC.runtime.lookupBuiltin = function(var)
+    if VergeC.runtime.availableBuiltins[var] then
+        return true,VergeC.runtime.availableBuiltins[var]
+    elseif v3[var] then
+        return true,'int'
+    end
+    
+    return nil
+end
+
 VergeC.runtime.op = {
     -- Comparisons
     OP_LT = function(...)
@@ -53,6 +68,22 @@ VergeC.runtime.lib = {
         end
         
         return s
+    end,
+    
+    str = function(a) return tostring(a) end,
+    int = function(a) return Math.floor(a) end,
+    
+    map = function(filename)
+        v3.log("OKAY TRYING TO LOAD A MAP... " .. filename)
+        
+        local vcfilename = string.sub(filename, 1, -4) .. "vc"
+        v3.log("Going to load " .. vcfilename)
+        
+        VergeC.runtime.mapmodule = VergeC.loadfile(vcfilename)
+        
+        v3.log("Loaded.")
+        
+        v3.map(filename)
     end
 }
 

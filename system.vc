@@ -1,6 +1,9 @@
 void autoexec() {
-    int i = 5;
-    int x = 2;
+    string s = "TESTING";
     
-    log(x);
+    TextBox(s);
+}
+
+void TextBox(string t) {
+    log(t);
 }

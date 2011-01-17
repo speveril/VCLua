@@ -1,9 +1,3 @@
 void autoexec() {
-    string s = "TESTING";
-    
-    TextBox(s);
-}
-
-void TextBox(string t) {
-    log(t);
+    log("ran");
 }

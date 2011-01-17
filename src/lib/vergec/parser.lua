@@ -55,7 +55,7 @@ VergeC.parsing_expressions = {
     )),
     
     GlobalList = one_or_more(collapse(parsex('GlobalDecl'))),
-    GlobalDecl = choice(collapse(named('globalfunc', parsex('FuncDecl'))), seq(collapse(named('globalvar',parsex('StructDecl'))),ignore(token('SEMICOLON'))), seq(collapse(named('globalvar',parsex('Decl'))),ignore(token('SEMICOLON')))),
+    GlobalDecl = choice(collapse(named('globalfunc', parsex('FuncDecl'))), seq(collapse(named('globalvar',parsex('StructDecl'))),ignore(optional(token('SEMICOLON')))), seq(collapse(named('globalvar',parsex('Decl'))),ignore(token('SEMICOLON')))),
     
     StructDecl = seq(ignore(token('KEY_STRUCT')), token('IDENT'), ignore(token('BRACE_OPEN')), zero_or_more(collapse(seq(collapse(named('membervar',parsex('Decl'))),ignore(token('SEMICOLON'))))), ignore(token('BRACE_CLOSE'))),
     
@@ -101,7 +101,7 @@ VergeC.parsing_expressions = {
         )),
         token('NUMBER'),
         token('STRING'),
-        seq(token('PAREN_OPEN'), parsex('Expr'), token('PAREN_CLOSE'))
+        seq(ignore(token('PAREN_OPEN')), parsex('Expr'), ignore(token('PAREN_CLOSE')))
     ),
     PostfixOp = choice(named('postop', collapse(seq(parsex('Value'), choice(token('OP_INCREMENT'), token('OP_DECREMENT'))))), collapse(parsex('Value'))),
     PrefixOp = choice(named('preop', collapse(seq(choice(token('OP_NOT'), token('OP_BNOT'), token('OP_INCREMENT'), token('OP_DECREMENT'), token('OP_SUB')), parsex('PostfixOp')))), collapse(parsex('PostfixOp'))),
@@ -110,7 +110,7 @@ VergeC.parsing_expressions = {
     Sum = choice(collapse(named('binop', seq(parsex('Product'), collapse(one_or_more(collapse(seq(choice(token('OP_ADD'), token('OP_SUB')), parsex('Product')))))))), collapse(parsex('Product'))),
     Comparison = choice(collapse(named('binop', seq(parsex('Sum'), collapse(one_or_more(collapse(seq(choice(token('OP_EQ'), token('OP_NE'), token('OP_LTE'), token('OP_GTE'), token('OP_LT'), token('OP_GT')), parsex('Sum')))))))), collapse(parsex('Sum'))),
     BooleanOp = choice(collapse(named('binop', seq(parsex('Comparison'), collapse(one_or_more(collapse(seq(choice(token('OP_AND'), token('OP_OR')), parsex('Comparison')))))))), collapse(parsex('Comparison'))),
-    Assignment = choice(collapse(named('binop',seq(parsex('BooleanOp'), collapse(one_or_more(collapse(seq(token('OP_ASSIGN'), parsex('BooleanOp')))))))), collapse(parsex('BooleanOp'))),
+    Assignment = choice(collapse(named('binop',seq(parsex('BooleanOp'), collapse(one_or_more(collapse(seq(choice(token('OP_ASSIGN'), token('OP_ADDASSIGN'), token('OP_SUBASSIGN'), token('OP_MLTASSIGN'), token('OP_DIVASSIGN'), token('OP_MODASSIGN')), parsex('BooleanOp')))))))), collapse(parsex('BooleanOp'))),
     Expr = parsex('Assignment'),
 }
 
@@ -126,6 +126,7 @@ function VergeC.parse(this, what)
     if not what then
         what = VergeC.default_parsing_expression
         this.packrat = {}
+        this.codelen = string.len(this.code)
     end
     
     if type(what) == 'string' then
@@ -159,7 +160,7 @@ function VergeC.parse(this, what)
         node.value = ''
         parsed = true
     elseif type == 'TOKEN' then
-        local ty,val,idx = this:peek()
+        local ty,val,idx = this:peek(what[1])
         if ty == what[1] then
             this:consume(idx)
             node.token_type = ty
@@ -182,7 +183,7 @@ function VergeC.parse(this, what)
                 table.insert(node, child)
             end            
         else
-            print("ERROR: Badly formed parsing expression; expression '" .. tostring(what[1]) .. "' does not exist!")
+            this:error("PARSING ERROR:\n Badly formed parsing expression; expression '" .. tostring(what[1]) .. "' does not exist!")
         end
     elseif type == 'SEQ' then
         local i,v

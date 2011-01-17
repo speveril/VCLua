@@ -57,15 +57,19 @@ function VergeC.compile(this)
         VergeC.scope = { {} }
     end
     
+    this.globals = {}
+    
     this.scope = VergeC.scope
     this.ast = this:cleanNode(this.ast)
 
-    VergeC.printAST(this.ast)
+    --VergeC.printAST(this.ast)
     
     this:compileNode(this.ast)
 end
 
 function VergeC.findVarInScope(this, varname)
+    if string.match(varname, "^%d+$") then return true, 0, varname end
+
     local refstr = string.lower(varname)
 
     level = #this.scope
@@ -136,6 +140,8 @@ end
 
 function VergeC.compileNode(this, node)
     if not node then return end
+    if node.compiled then print "Recompiling a node..." end
+    node.compiled = true
     
     --VergeC.printAST(node, 1, true)
     
@@ -155,7 +161,7 @@ function VergeC.compileNode(this, node)
             if this.scope[scope][decl[1]] then
                 this:error("COMPILE ERROR\n  Redeclaration of variable '" .. node.name .. "'", node.index)
             else
-                if name[2] == 'globalvar' then this:emit("VergeC.bin.") elseif name[2] == 'membervar' then this:emit("") else this:emit("local ") end
+                if name[2] == 'globalvar' then this:emit("VergeC.bin."); table.insert(this.globals,decl[1].value) elseif name[2] == 'membervar' then this:emit("") else this:emit("local ") end
                 this:emit(decl[1].value .. " = ")
                 
                 local scopeentry = {}
@@ -219,6 +225,7 @@ function VergeC.compileNode(this, node)
             
             table.insert(this.scope[1], { type = node[1].value, ident = node[2].value })
             table.insert(this.scope, localscope)
+            table.insert(this.globals,string.lower(node[2].value))
             
             -- build function head and signature
             local first = true
@@ -407,6 +414,16 @@ function VergeC.compileNode(this, node)
                 this:emit('VergeC.runtime.op.' .. op .. '(') this:compileNode(lhs) this:emit(', ') this:emit(op) this:emit(', ') this:compileNode(rhs) this:emit(')')
             elseif op == 'OP_ASSIGN' then
                 this:compileNode(lhs) this:emit(' = (') this:compileNode(rhs) this:emit(')')
+            elseif op == 'OP_ADDASSIGN' then
+                this:emit('(function()') this:compile(lhs) this:emit(' = ') this:compile(lhs) this:emit(' + ') this:compile(rhs) this:emit('; return ') this:compile(lhs) this:emit(' end)()')
+            elseif op == 'OP_SUBASSIGN=' then
+                this:emit('(function()') this:compile(lhs) this:emit(' = ') this:compile(lhs) this:emit(' - ') this:compile(rhs) this:emit('; return ') this:compile(lhs) this:emit(' end)()')
+            elseif op == 'OP_MLTASSIGN=' then
+                this:emit('(function()') this:compile(lhs) this:emit(' = ') this:compile(lhs) this:emit(' * ') this:compile(rhs) this:emit('; return ') this:compile(lhs) this:emit(' end)()')
+            elseif op == 'OP_DIVASSIGN=' then
+                this:emit('(function()') this:compile(lhs) this:emit(' = ') this:compile(lhs) this:emit(' / ') this:compile(rhs) this:emit('; return ') this:compile(lhs) this:emit(' end)()')
+            elseif op == 'OP_MODASSIGN=' then
+                this:emit('(function()') this:compile(lhs) this:emit(' = ') this:compile(lhs) this:emit(' % ') this:compile(rhs) this:emit('; return ') this:compile(lhs) this:emit(' end)()')
             else
                 this:emit('(') this:compileNode(lhs) this:emit(') ') this:compileNode(node[2]) this:emit(' (') this:compileNode(rhs) this:emit(') ')
             end
@@ -510,7 +527,7 @@ function VergeC.compileNode(this, node)
             this:emit(' (') this:compileNode(node[1]) this:emit(') ') this:compileNode(node[2]) 
         end
     
-    elseif name[1] == 'value' and #node > 1 then
+    elseif (name[1] == 'Value' or name[1] == 'value') and #node > 1 then
         for i,v in ipairs(node) do
             if i > 1 then
                 if v.token_type == 'IDENT' then
@@ -550,7 +567,7 @@ function VergeC.compileNode(this, node)
             local found, scopelevel
             found, scopelevel, refstr = VergeC.findVarInScope(this, node.value)
             if found then
-                this:emit(string.lower(refstr))
+                this:emit(refstr)
             else
                 this:error("COMPILE ERROR\n  Unknown variable '" .. node.value .. "'.", node.index)
             end

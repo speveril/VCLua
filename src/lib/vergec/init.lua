@@ -22,11 +22,13 @@ function VergeC.newModule()
     m.compiledcode = ''
     
     m.error = VergeC.error
+    m.unload = VergeC.unload
     
     m.addLine = VergeC.addLine
     m.preprocess = VergeC.preprocess
     m.parse = VergeC.parse
     m.peek = VergeC.peek
+    m.matchToken = VergeC.matchToken
     m.consume = VergeC.consume
     
     m.compile = VergeC.compile
@@ -41,7 +43,15 @@ function VergeC.newModule()
     return m
 end
 
+function VergeC.unload(this)
+    local i,v
+    for i,v in ipairs(this.globals) do
+        VergeC.scope[1][v] = nil
+    end
+end
+
 function VergeC.call(func, args)
+    if not args then args = {} end
     return VergeC.bin[func](unpack(args))
 end
 
@@ -95,7 +105,7 @@ function VergeC.loadfile(filename)
     print("VERGEC: Parsing " .. filename .. "...")
     module.ast,succ = module:parse()
     
-    if succ and module.furthestindex >  string.len(module.code) then
+    if succ and module.furthestindex > string.len(module.code) then
         print("VERGEC: Parsing complete.")
     else
         module:error("PARSING ERROR")
@@ -108,12 +118,18 @@ function VergeC.loadfile(filename)
     print("VERGEC: Compiling complete.")
     module:emit("\n-- done")
     
-    print("")
-    print(" LUA SOURCE (" .. filename .. "):")
-    module:outputCode(true)
-    print("")
+    --print("")
+    --print(" LUA SOURCE (" .. filename .. "):")
+    --module:outputCode(true)
+    --print("")
     
-    assert(loadstring(module.compiledcode))()
+    local cc = loadstring(module.compiledcode)
+    if cc then
+        cc()
+    else
+        print(module.compiledcode)
+        module:error("Whoops! The generated Lua was no good. :(")
+    end
     
     return module
     -- done

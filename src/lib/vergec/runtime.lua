@@ -2,15 +2,8 @@
 
 VergeC.runtime = {}
 
-VergeC.runtime.availableBuiltins = {
-    b1='int', b2='int', b3='int', b4='int',
-    curmap={startx='int',starty='int'}
-}
-
 VergeC.runtime.lookupBuiltin = function(var)
-    if VergeC.runtime.availableBuiltins[var] then
-        return true,VergeC.runtime.availableBuiltins[var]
-    elseif v3[var] then
+    if v3[var] ~= not nil then
         return true,'int'
     end
     
@@ -76,16 +69,58 @@ VergeC.runtime.lib = {
     map = function(filename)
         v3.log("OKAY TRYING TO LOAD A MAP... " .. filename)
         
+        if VergeC.runtime.mapmodule then
+            v3.log("Unloading old map code")
+            VergeC.runtime.mapmodule:unload()
+        end
+        
         local vcfilename = string.sub(filename, 1, -4) .. "vc"
         v3.log("Going to load " .. vcfilename)
         
         VergeC.runtime.mapmodule = VergeC.loadfile(vcfilename)
         
-        v3.log("Loaded.")
-        
+        v3.hookMapLoad(VergeC.runtime.lib.mapLoad)
         v3.map(filename)
+    end,
+    
+    mapLoad = function()
+        v3.log(v3.curmap.zones);
+        
+        local i
+        for i=0,v3.curmap.zones do
+            if v3.zone[i].event ~= '' then
+                v3.zone[i].event = "VergeC.bin[\"" .. v3.zone[i].event .. "\"]"
+            end
+        end
+        
+        for i=0,v3.entities do
+            if v3.entity[i].script and v3.entity[i].script ~= '' then
+                v3.entity[i].rawscript = v3.entity[i].script
+                v3.entity[i].script = "__wrapEntityFunc"
+            end
+        end        
+       
+        startupscript = string.lower(v3.curmap.startupscript)
+        if VergeC.bin[startupscript] then
+            VergeC.bin[startupscript]()
+        end
     end
 }
+
+function __wrapEntityFunc()
+    local e = v3.event.entity
+    local s = v3.entity[e].rawscript
+    
+    v3.log("Entity event with entity " .. v3.entity[e].description .. ", trying to call " .. s)
+    
+    if _G[s] then
+        v3.log("Calling global '" .. s .. "'")
+        _G[s]()
+    elseif VergeC.bin[string.lower(s)] then
+        v3.log("Calling VC func '" .. s .. "'")
+        VergeC.call(string.lower(s))
+    end
+end
 
 VergeC.runtime.truth = function(a)
     if a == 0 or a == "" or a == false or a == nil then
@@ -95,3 +130,9 @@ VergeC.runtime.truth = function(a)
     end
 end
 
+
+
+t = getmetatable(_G)
+if not t then t = {} end
+t.__index = VergeC.bin
+setmetatable(_G, t)
